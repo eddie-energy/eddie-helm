@@ -1,0 +1,15 @@
+# Merge over your installation values. Manage the database role and schema grants.
+postgres:
+  enabled: false
+  host: "postgres.database.example.com"
+  database: "eddie"
+  existingSecret: eddie-postgres-credentials
+  ssl:
+    mode: verify-full
+    rootCert:
+      existingSecret: eddie-postgres-ca
+      key: ca.crt
+mqtt:
+  provisioning:
+    # Enable only if the database credential is allowed to create and alter roles.
+    enabled: false

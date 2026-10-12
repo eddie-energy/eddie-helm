@@ -1,0 +1,25 @@
+{{- $auth := .Values.core.auth }}
+{{- $management := .Values.core.dataNeedsConfig.management }}
+{{- if and (eq (toString .Values.ingress.enabled) "true") (eq (include "eddie.management.ingress.exposeCoreManagement" .) "true") }}
+{{- $useTraefikAuth := and (eq (toString $auth.enabled) "true") (eq (default "traefik" $auth.provider) "traefik") }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Release.Name }}-management-ingress
+  {{- include "eddie.core.labels" . | indent 2 }}
+  {{- include "eddie.ingress.annotations" (dict "root" . "annotations" $management.ingress.annotations "auth" $useTraefikAuth) | nindent 2 }}
+spec:
+  ingressClassName: {{ .Values.ingress.className | quote }}
+  rules:
+    - host: {{ include "eddie.publicHost" . | quote }}
+      http:
+        paths:
+          - path: {{ include "eddie.contextPath" . }}/{{ include "eddie.management.urlPrefix" . }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Release.Name }}-core
+                port:
+                  number: 9090
+  {{- include "eddie.ingress.tls" . | nindent 2 }}
+{{- end }}

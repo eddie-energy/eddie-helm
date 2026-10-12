@@ -1,0 +1,106 @@
+{{/* Cross-field constraints; individual value types are checked by values.schema.json. */}}
+{{- $core := .Values.core -}}
+{{- $postgres := .Values.postgres -}}
+{{- $mqtt := .Values.mqtt -}}
+{{- $kafka := include "eddie.componentValues" (dict "root" . "component" "kafka") | fromYaml -}}
+{{- $ingress := .Values.ingress -}}
+{{- $admin := .Values.outboundConnectors.adminConsole -}}
+{{- $amqp := .Values.outboundConnectors.amqp -}}
+{{- $aiidaMqtt := .Values.regionConnectors.aiida.mqtt -}}
+{{- $ingressEnabled := eq (toString $ingress.enabled) "true" -}}
+{{- $mqttExposed := eq (toString $mqtt.externalAccess.enabled) "true" -}}
+{{- $managedAuth := eq (include "eddie.auth.managed" .) "true" -}}
+
+{{/* EDDIE decodes this value and requires exactly 32 signing-key bytes. */}}
+{{- if and (not $core.existingSecret) (ne (len $core.jwtHmacSecret) 32) -}}
+  {{- fail "core.jwtHmacSecret must contain exactly 32 UTF-8 bytes, or supply core.existingSecret with a Base64-encoded 32-byte jwtHmacSecret." -}}
+{{- end -}}
+
+{{/* Connection requirements and bounds. */}}
+{{- if and (eq (toString $amqp.enabled) "true") (not $core.existingSecret) -}}
+  {{- $_ := required "outboundConnectors.amqp.uri is required when AMQP is enabled (or supply core.existingSecret with amqpUri)." $amqp.uri -}}
+{{- end -}}
+{{- if lt (int $core.replicaCount) 0 -}}
+  {{- fail "core.replicaCount must be nonnegative." -}}
+{{- end -}}
+{{- if lt (int $mqtt.provisioning.timeoutSeconds) 5 -}}
+  {{- fail "mqtt.provisioning.timeoutSeconds must be at least 5." -}}
+{{- end -}}
+{{- range $port := list $postgres.port $kafka.externalPort $mqtt.ports.mqtt $mqtt.ports.ssl -}}
+  {{- if or (lt (int $port) 1) (gt (int $port) 65535) -}}
+    {{- fail "Service ports must be between 1 and 65535." -}}
+  {{- end -}}
+{{- end -}}
+{{- if and (eq (toString $kafka.externalAccess.enabled) "true") (ne (int $kafka.replicaCount) 1) -}}
+  {{- fail "External Kafka access currently supports kafka.replicaCount=1 only; use internal access for multiple brokers." -}}
+{{- end -}}
+{{- if eq (toString $postgres.enabled) "false" -}}
+  {{- $_ := required "postgres.host is required when postgres.enabled=false" $postgres.host -}}
+{{- end -}}
+{{/* Ingress and application authentication must agree with the selected provider. */}}
+{{- if and $ingressEnabled
+  (ne $ingress.className "traefik")
+  $managedAuth
+-}}
+  {{- fail "Traefik authentication requires ingress.className=traefik; configure external auth for other ingress controllers." -}}
+{{- end -}}
+{{- if and $ingressEnabled
+  (eq (toString $admin.enabled) "true")
+  (eq $admin.access.auth.provider "app")
+  (ne (toString $admin.login.enabled) "true")
+-}}
+  {{- fail "adminConsole access.auth.provider=app requires login.enabled=true" -}}
+{{- end -}}
+{{- if and (eq (toString $admin.login.enabled) "true") (eq $admin.login.mode "keycloak") -}}
+  {{- $_ := required "Keycloak login requires keycloakClientID" $admin.login.keycloakClientID -}}
+  {{- $_ := required "Keycloak login requires keycloakIssuerURI" $admin.login.keycloakIssuerURI -}}
+  {{- if not $core.existingSecret -}}
+    {{- $_ := required "Keycloak login requires keycloakClientSecret or core.existingSecret" $admin.login.keycloakClientSecret -}}
+  {{- end -}}
+{{- end -}}
+{{- if and
+  (eq (toString $admin.login.enabled) "true")
+  (eq $admin.login.mode "basic")
+  (not $core.existingSecret)
+-}}
+  {{- $_ := required "Admin-console basic login requires outboundConnectors.adminConsole.login.encodedPassword containing a BCrypt hash, or core.existingSecret with adminConsolePassword." $admin.login.encodedPassword -}}
+  {{- if not (regexMatch "^\\$2[aby]\\$(0[4-9]|[12][0-9]|3[01])\\$[./A-Za-z0-9]{53}$" $admin.login.encodedPassword) -}}
+    {{- fail "outboundConnectors.adminConsole.login.encodedPassword must be a BCrypt hash, not a plaintext password." -}}
+  {{- end -}}
+{{- end -}}
+{{- if and $managedAuth (not $core.auth.existingSecret) (not $core.auth.htpasswd) -}}
+  {{- $_ := required "core.auth.users is required for chart-managed basic auth" $core.auth.users -}}
+  {{- range $core.auth.users -}}
+    {{- if or (eq .name "CHANGEME") (eq .password "CHANGEME") -}}
+      {{- fail "Replace CHANGEME credentials in core.auth.users before enabling ingress (or supply core.auth.htpasswd/existingSecret)." -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{/* Keep placeholder credentials off publicly exposed installations. */}}
+{{- if or $ingressEnabled $mqttExposed -}}
+  {{- if and (not $postgres.existingSecret) (or (eq $postgres.password "CHANGEME") (empty $postgres.password)) -}}
+    {{- fail "Set postgres.password or postgres.existingSecret before enabling public access." -}}
+  {{- end -}}
+  {{- if not $mqtt.existingSecret -}}
+    {{- if or (eq $mqtt.db.password "CHANGEME") (empty $mqtt.db.password) (eq $aiidaMqtt.password "CHANGEME") (empty $aiidaMqtt.password) -}}
+      {{- fail "Set mqtt.db.password and regionConnectors.aiida.mqtt.password (or mqtt.existingSecret) before enabling public access." -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{/* Kafka replication settings must fit the configured broker count. */}}
+{{- range $factor := list
+  $kafka.strimzi.defaultReplicationFactor
+  $kafka.strimzi.offsetsTopicReplicationFactor
+  $kafka.strimzi.transactionStateLogReplicationFactor
+  $kafka.strimzi.transactionStateLogMinIsr
+  $kafka.strimzi.minInsyncReplicas
+-}}
+  {{- if or (lt (int $factor) 1) (gt (int $factor) (int $kafka.replicaCount)) -}}
+    {{- fail "Kafka replication/ISR settings must be between 1 and kafka.replicaCount." -}}
+  {{- end -}}
+{{- end -}}
+{{- range $kafka.topics -}}
+  {{- if or (lt (int .partitions) 1) (lt (int .replicationFactor) 1) (gt (int .replicationFactor) (int $kafka.replicaCount)) -}}
+    {{- fail "Kafka topics need positive partitions and replicationFactor <= kafka.replicaCount." -}}
+  {{- end -}}
+{{- end -}}

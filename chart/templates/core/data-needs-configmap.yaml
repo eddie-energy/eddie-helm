@@ -1,0 +1,14 @@
+{{- if and (eq .Values.core.dataNeedsConfig.datasource "config") (not .Values.core.dataNeedsConfig.existingConfigMap) }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "eddie.dataNeeds.configMapName" . }}
+  {{- include "eddie.core.labels" . | indent 2 }}
+data:
+  data-needs.json: |-
+    {{- if .Values.core.dataNeedsConfig.data }}
+    {{- .Values.core.dataNeedsConfig.data | toPrettyJson | nindent 4 }}
+    {{- else }}
+    {{- .Files.Get "files/data-needs.example.json" | nindent 4 }}
+    {{- end }}
+{{- end }}

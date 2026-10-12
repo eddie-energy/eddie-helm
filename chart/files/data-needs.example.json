@@ -1,0 +1,274 @@
+[
+  {
+    "type": "validated",
+    "id": "9bd0668f-cc19-40a8-99db-dc2cb2802b17",
+    "name": "LAST_3_MONTHS_ONE_MEASUREMENT_PER_DAY",
+    "description": "Historical validated consumption data for the last three months, one measurement per day",
+    "purpose": "Some purpose",
+    "policyLink": "https://example.com/toc",
+    "duration": {
+      "type": "relativeDuration",
+      "start": "-P3M",
+      "end": "P-1D"
+    },
+    "energyType": "ELECTRICITY",
+    "minGranularity": "P1D",
+    "maxGranularity": "P1D"
+  },
+  {
+    "type": "validated",
+    "id": "dcbc1c74-37bd-4c5b-ab2e-fd0be9c1edf3",
+    "name": "NEXT_10_DAYS_ONE_MEASUREMENT_PER_DAY",
+    "description": "Historical validated consumption data for the next 10 days,one measurement per day",
+    "purpose": "Some purpose",
+    "policyLink": "https://example.com/toc",
+    "duration": {
+      "type": "relativeDuration",
+      "start": "P1D",
+      "end": "P10D"
+    },
+    "energyType": "ELECTRICITY",
+    "minGranularity": "P1D",
+    "maxGranularity": "P1D"
+  },
+  {
+    "type": "outbound-aiida",
+    "id": "5dc71d7e-e8cd-4403-a3a8-d3c095c97a84",
+    "name": "FUTURE_NEAR_REALTIME_DATA_OUTBOUND",
+    "description": "Near realtime consumption data from the smart meter",
+    "purpose": "purpose",
+    "policyLink": "https://example.com/toc",
+    "duration": {
+      "type": "relativeDuration",
+      "start": "P0D",
+      "end": "P10D"
+    },
+    "transmissionSchedule": "*/5 * * * * *",
+    "schemas": [
+      "SMART-METER-P1-RAW"
+    ],
+    "asset": "CONNECTION-AGREEMENT-POINT",
+    "dataTags": [
+      "1-0:1.8.0",
+      "1-0:1.7.0"
+    ]
+  },
+  {
+    "type": "inbound-aiida",
+    "id": "f7698978-b9fe-40c8-aebe-c997f7f58f2f",
+    "name": "FUTURE_AIIDA_INBOUND",
+    "description": "Inbound data read by AIIDA",
+    "purpose": "purpose",
+    "policyLink": "https://example.com/toc",
+    "duration": {
+      "type": "relativeDuration",
+      "start": "P0D",
+      "end": "P10D"
+    },
+    "transmissionSchedule": "*/5 * * * * *",
+    "schemas": [
+      "SMART-METER-P1-RAW"
+    ],
+    "asset": "CONNECTION-AGREEMENT-POINT",
+    "dataTags": [
+      "1-0:1.8.0",
+      "1-0:1.7.0"
+    ]
+  },
+  {
+    "type": "validated",
+    "id": "b35dc783-a25e-487a-a914-6064bdd7feb5",
+    "name": "LAST_3_MONTHS_HOURLY_MEASUREMENTS_PER_DAY",
+    "description": "Historical validated consumption data for the last three months, one measurement per hour",
+    "purpose": "Some purpose",
+    "policyLink": "https://example.com/toc",
+    "duration": {
+      "type": "relativeDuration",
+      "start": "-P3M",
+      "end": "P-1D"
+    },
+    "energyType": "ELECTRICITY",
+    "minGranularity": "PT1H",
+    "maxGranularity": "PT1H"
+  },
+  {
+    "type": "outbound-aiida",
+    "id": "3f2c6d1a-8b4e-4f9c-a2d1-9c2e7b6f1a40",
+    "name": "Monitoring Flexible Anschlussvereinbarung Netz Noe",
+    "description": "Data sent each 2 secs",
+    "purpose": "purpose",
+    "policyLink": "https://example.com/toc",
+    "duration": {
+      "type": "relativeDuration",
+      "start": "P0D",
+      "end": "P3M"
+    },
+    "transmissionSchedule": "*/2 * * * * *",
+    "schemas": [
+      "SMART-METER-P1-CIM-V1-12"
+    ],
+    "asset": "CONNECTION-AGREEMENT-POINT"
+  },
+  {
+    "type": "inbound-aiida",
+    "id": "c9b7e2d4-1a63-4c2f-8b1d-0f6a7c3e2b91",
+    "name": "Publikation FCA Connection Limits - Netz Noe",
+    "description": "Eligible party gets an open non-schema-bound stream towards thefinal.",
+    "purpose": "Communication Flexible Connection Agreement limits",
+    "policyLink": "https://example.com/toc",
+    "duration": {
+      "type": "relativeDuration",
+      "start": "P0D",
+      "end": "P3M"
+    },
+    "transmissionSchedule": "0,15,30,45 * * * * *",
+    "schemas": [
+      "MIN-MAX-ENVELOPE-CIM-V1-12"
+    ],
+    "asset": "CONNECTION-AGREEMENT-POINT"
+  },
+  {
+    "type": "outbound-aiida",
+    "id": "5a1e9c7d-3b48-4d1f-9a6c-2e8f0b1c4d73",
+    "name": "Monitoring Flexible Anschlussvereinbarung E-Netze",
+    "description": "Data sent each 2 secs",
+    "purpose": "purpose",
+    "policyLink": "https://example.com/toc",
+    "duration": {
+      "type": "relativeDuration",
+      "start": "P0D",
+      "end": "P3M"
+    },
+    "transmissionSchedule": "*/2 * * * * *",
+    "schemas": [
+      "SMART-METER-P1-CIM-V1-12"
+    ],
+    "asset": "CONNECTION-AGREEMENT-POINT"
+  },
+  {
+    "type": "inbound-aiida",
+    "id": "e2f4a9b0-6c1d-4b7e-8f3a-1c9d5e7b2a64",
+    "name": "Publikation FCA Connection Limits - E-Netze",
+    "description": "Eligible party gets an open non-schema-bound stream towards the final.",
+    "purpose": "Communication Flexible Connection Agreement limits",
+    "policyLink": "https://example.com/toc",
+    "duration": {
+      "type": "relativeDuration",
+      "start": "P0D",
+      "end": "P3M"
+    },
+    "transmissionSchedule": "0,15,30,45 * * * * *",
+    "schemas": [
+      "MIN-MAX-ENVELOPE-CIM-V1-12"
+    ],
+    "asset": "CONNECTION-AGREEMENT-POINT"
+  },
+  {
+    "type": "outbound-aiida",
+    "id": "c3a5f8b2-7d9e-4e6b-a1f0-d9b2e3c4a5b1",
+    "name": "[EDA] Monitoring Flexible Anschlussvereinbarung Netz Noe",
+    "description": "Data sent each 2 secs",
+    "purpose": "purpose",
+    "policyLink": "https://example.com/toc",
+    "duration": {
+      "type": "relativeDuration",
+      "start": "P0D",
+      "end": "P3M"
+    },
+    "transmissionSchedule": "*/2 * * * * *",
+    "schemas": [
+      "SMART-METER-P1-CIM-V1-12"
+    ],
+    "asset": "CONNECTION-AGREEMENT-POINT"
+  },
+  {
+    "type": "inbound-aiida",
+    "id": "e7b4d1f9-02a3-4c6d-b8e9-5f3a1b2c4d6e",
+    "name": "[EDA] Publikation FCA Connection Limits - Netz Noe",
+    "description": "Eligible party gets an open non-schema-bound stream towards thefinal.",
+    "purpose": "Communication Flexible Connection Agreement limits",
+    "policyLink": "https://example.com/toc",
+    "duration": {
+      "type": "relativeDuration",
+      "start": "P0D",
+      "end": "P3M"
+    },
+    "transmissionSchedule": "0,15,30,45 * * * * *",
+    "schemas": [
+      "MIN-MAX-ENVELOPE-CIM-V1-12"
+    ],
+    "asset": "CONNECTION-AGREEMENT-POINT"
+  },
+  {
+    "type": "outbound-aiida",
+    "id": "a1b2c3d4-e5f6-4789-90ab-cdef12345678",
+    "name": "[EDA] Monitoring Flexible Anschlussvereinbarung E-Netze",
+    "description": "Data sent each 2 secs",
+    "purpose": "purpose",
+    "policyLink": "https://example.com/toc",
+    "duration": {
+      "type": "relativeDuration",
+      "start": "P0D",
+      "end": "P3M"
+    },
+    "transmissionSchedule": "*/2 * * * * *",
+    "schemas": [
+      "SMART-METER-P1-CIM-V1-12"
+    ],
+    "asset": "CONNECTION-AGREEMENT-POINT"
+  },
+  {
+    "type": "inbound-aiida",
+    "id": "f0e1d2c3-b4a5-6789-0123-456789abcdef",
+    "name": "[EDA] Publikation FCA Connection Limits - E-Netze",
+    "description": "Eligible party gets an open non-schema-bound stream towards the final.",
+    "purpose": "Communication Flexible Connection Agreement limits",
+    "policyLink": "https://example.com/toc",
+    "duration": {
+      "type": "relativeDuration",
+      "start": "P0D",
+      "end": "P3M"
+    },
+    "transmissionSchedule": "0,15,30,45 * * * * *",
+    "schemas": [
+      "MIN-MAX-ENVELOPE-CIM-V1-12"
+    ],
+    "asset": "CONNECTION-AGREEMENT-POINT"
+  },
+  {
+    "type": "outbound-aiida",
+    "id": "e1b8c2d9-3f47-4a6e-b5d0-2ac7f1e4b9d3",
+    "name": "[EDA] Monitoring Flexible Anschlussvereinbarung Wiener Netze",
+    "description": "Data sent each 2 secs",
+    "purpose": "purpose",
+    "policyLink": "https://example.com/toc",
+    "duration": {
+      "type": "relativeDuration",
+      "start": "P0D",
+      "end": "P3M"
+    },
+    "transmissionSchedule": "*/2 * * * * *",
+    "schemas": [
+      "SMART-METER-P1-CIM-V1-12"
+    ],
+    "asset": "CONNECTION-AGREEMENT-POINT"
+  },
+  {
+    "type": "inbound-aiida",
+    "id": "7f2c9a6e-8b12-45e4-9d1c-f0a3b7c8d6e4",
+    "name": "[EDA] Publikation FCA Connection Limits - Wiener Netze",
+    "description": "Eligible party gets an open non-schema-bound stream towards the final.",
+    "purpose": "Communication Flexible Connection Agreement limits",
+    "policyLink": "https://example.com/toc",
+    "duration": {
+      "type": "relativeDuration",
+      "start": "P0D",
+      "end": "P3M"
+    },
+    "transmissionSchedule": "0,15,30,45 * * * * *",
+    "schemas": [
+      "MIN-MAX-ENVELOPE-CIM-V1-12"
+    ],
+    "asset": "CONNECTION-AGREEMENT-POINT"
+  }
+]

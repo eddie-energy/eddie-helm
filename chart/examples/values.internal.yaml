@@ -1,0 +1,16 @@
+# Internal installation. Create the four Secrets described in README.md first.
+# These names must match the Secrets in the release namespace.
+global:
+  host: "localhost:8080"
+ingress:
+  enabled: false
+  tls:
+    enabled: false
+core:
+  existingSecret: eddie-core-credentials
+  auth:
+    existingSecret: eddie-management-auth
+postgres:
+  existingSecret: eddie-postgres-credentials
+mqtt:
+  existingSecret: eddie-mqtt-credentials

@@ -1,0 +1,14 @@
+# Merge over your installation values for remote AIIDA clients.
+# Create eddie-mqtt-tls with a certificate covering mqtt.example.com.
+# Both EDDIE core and remote clients must reach this endpoint.
+mqtt:
+  externalAccess:
+    enabled: true
+    tls:
+      enabled: true
+      existingSecret: eddie-mqtt-tls
+regionConnectors:
+  aiida:
+    mqtt:
+      server:
+        uri: "ssl://mqtt.example.com:8883"

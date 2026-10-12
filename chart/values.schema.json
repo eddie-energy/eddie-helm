@@ -1,0 +1,1054 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "EDDIE chart values",
+  "type": "object",
+  "properties": {
+    "global": {
+      "type": "object",
+      "properties": {
+        "host": { "type": "string" },
+        "externalIP": { "type": "string" },
+        "eddieId": { "type": "string" }
+      }
+    },
+    "strimziOperator": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" }
+      }
+    },
+    "strimzi-kafka-operator": {
+      "type": "object",
+      "properties": {
+        "watchAnyNamespace": { "$ref": "#/definitions/boolean" },
+        "watchNamespaces": {
+          "type": "array",
+          "items": {}
+        },
+        "createGlobalResources": { "$ref": "#/definitions/boolean" }
+      }
+    },
+    "postgres": {
+      "type": "object",
+      "properties": {
+        "enabled": { "$ref": "#/definitions/boolean" },
+        "host": { "type": "string" },
+        "existingSecret": { "type": "string" },
+        "image": { "type": "string" },
+        "imagePullPolicy": { "type": "string" },
+        "podAnnotations": {
+          "type": "object",
+          "properties": {}
+        },
+        "nodeSelector": {
+          "type": "object",
+          "properties": {}
+        },
+        "tolerations": {
+          "type": "array",
+          "items": {}
+        },
+        "affinity": {
+          "type": "object",
+          "properties": {}
+        },
+        "podSecurityContext": {
+          "type": "object",
+          "properties": {}
+        },
+        "securityContext": { "$ref": "#/definitions/securityContext" },
+        "startupProbe": {
+          "type": "object",
+          "properties": {
+            "exec": {
+              "type": "object",
+              "properties": {
+                "command": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                }
+              }
+            },
+            "failureThreshold": { "$ref": "#/definitions/integer" },
+            "periodSeconds": { "$ref": "#/definitions/integer" }
+          }
+        },
+        "readinessProbe": {
+          "type": "object",
+          "properties": {
+            "exec": {
+              "type": "object",
+              "properties": {
+                "command": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                }
+              }
+            },
+            "periodSeconds": { "$ref": "#/definitions/integer" }
+          }
+        },
+        "livenessProbe": {
+          "type": "object",
+          "properties": {}
+        },
+        "replicaCount": {
+          "oneOf": [
+            { "type": "integer", "const": 1 },
+            { "type": "string", "pattern": "^1$" }
+          ]
+        },
+        "version": { "type": ["string", "number"] },
+        "username": { "type": "string" },
+        "password": { "type": "string" },
+        "port": {
+          "oneOf": [
+            { "type": "integer", "minimum": 1, "maximum": 65535 },
+            { "type": "string", "pattern": "^-?[0-9]+$" }
+          ]
+        },
+        "database": { "type": "string" },
+        "ssl": {
+          "type": "object",
+          "properties": {
+            "mode": { "type": "string", "enum": ["", "disable", "require", "verify-ca", "verify-full"] },
+            "rootCert": {
+              "type": "object",
+              "properties": {
+                "existingSecret": { "type": "string" },
+                "key": { "type": "string" }
+              }
+            }
+          }
+        },
+        "persistence": { "$ref": "#/definitions/persistence" },
+        "resources": { "$ref": "#/definitions/resources" }
+      }
+    },
+    "kafka": {
+      "type": "object",
+      "properties": {
+        "replicaCount": {
+          "oneOf": [
+            { "type": "integer", "minimum": 1 },
+            { "type": "string", "pattern": "^-?[0-9]+$" }
+          ]
+        },
+        "autocreateTopics": { "$ref": "#/definitions/boolean" },
+        "topics": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "replicationFactor": { "$ref": "#/definitions/integer" },
+              "partitions": { "$ref": "#/definitions/integer" }
+            }
+          }
+        },
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "consumeTopics": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": { "type": "string" },
+                    "group": { "type": "string" }
+                  }
+                }
+              },
+              "produceTopics": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "persistence": {
+          "type": "object",
+          "properties": {
+            "size": { "type": "string" },
+            "storageClass": { "type": ["string", "null"] },
+            "storageLimit": { "type": "string" }
+          }
+        },
+        "externalIP": { "type": "string" },
+        "externalAccess": {
+          "type": "object",
+          "properties": {
+            "enabled": { "$ref": "#/definitions/boolean" },
+            "host": { "type": "string" },
+            "tls": {
+              "type": "object",
+              "properties": {
+                "existingSecret": { "type": "string" }
+              }
+            },
+            "certManager": {
+              "type": "object",
+              "properties": {
+                "enabled": { "$ref": "#/definitions/boolean" },
+                "clusterIssuer": { "type": "string" },
+                "privateKeyEncoding": { "type": "string" }
+              }
+            }
+          }
+        },
+        "externalPort": {
+          "oneOf": [
+            { "type": "integer", "minimum": 1, "maximum": 65535 },
+            { "type": "string", "pattern": "^-?[0-9]+$" }
+          ]
+        },
+        "strimzi": {
+          "type": "object",
+          "properties": {
+            "kafkaVersion": { "type": "string" },
+            "metadataVersion": { "type": "string" },
+            "storage": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string", "enum": ["persistent-claim"] }
+              }
+            },
+            "offsetsTopicReplicationFactor": { "$ref": "#/definitions/integer" },
+            "transactionStateLogReplicationFactor": { "$ref": "#/definitions/integer" },
+            "transactionStateLogMinIsr": { "$ref": "#/definitions/integer" },
+            "defaultReplicationFactor": { "$ref": "#/definitions/integer" },
+            "minInsyncReplicas": { "$ref": "#/definitions/integer" }
+          }
+        },
+        "controllerUser": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" }
+          }
+        },
+        "coreUser": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" }
+          }
+        },
+        "resources": { "$ref": "#/definitions/resources" }
+      }
+    },
+    "core": {
+      "type": "object",
+      "properties": {
+        "existingSecret": { "type": "string" },
+        "podAnnotations": {
+          "type": "object",
+          "properties": {}
+        },
+        "nodeSelector": {
+          "type": "object",
+          "properties": {}
+        },
+        "tolerations": {
+          "type": "array",
+          "items": {}
+        },
+        "affinity": {
+          "type": "object",
+          "properties": {}
+        },
+        "topologySpreadConstraints": {
+          "type": "array",
+          "items": {}
+        },
+        "podSecurityContext": {
+          "type": "object",
+          "properties": {}
+        },
+        "securityContext": { "$ref": "#/definitions/securityContext" },
+        "startupProbe": {
+          "type": "object",
+          "properties": {
+            "tcpSocket": { "$ref": "#/definitions/tcpSocket" },
+            "periodSeconds": { "$ref": "#/definitions/integer" },
+            "failureThreshold": { "$ref": "#/definitions/integer" }
+          }
+        },
+        "readinessProbe": {
+          "type": "object",
+          "properties": {
+            "tcpSocket": { "$ref": "#/definitions/tcpSocket" },
+            "periodSeconds": { "$ref": "#/definitions/integer" }
+          }
+        },
+        "livenessProbe": {
+          "type": "object",
+          "properties": {}
+        },
+        "replicaCount": {
+          "oneOf": [
+            { "type": "integer", "minimum": 0 },
+            { "type": "string", "pattern": "^-?[0-9]+$" }
+          ]
+        },
+        "logLevel": { "type": "string" },
+        "image": { "type": "string" },
+        "version": { "type": "string" },
+        "imagePullSecrets": {
+          "type": "array",
+          "items": {}
+        },
+        "demoButton": { "$ref": "#/definitions/boolean" },
+        "jwtHmacSecret": { "type": "string" },
+        "auth": {
+          "type": "object",
+          "properties": {
+            "enabled": { "$ref": "#/definitions/boolean" },
+            "type": { "type": "string", "enum": ["basic"] },
+            "provider": { "type": "string", "enum": ["traefik", "external"] },
+            "realm": { "type": "string" },
+            "existingSecret": { "type": "string" },
+            "htpasswd": { "type": "string" },
+            "users": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string", "minLength": 1 },
+                  "password": { "type": "string", "minLength": 1 }
+                },
+                "required": ["name", "password"]
+              }
+            }
+          }
+        },
+        "dataNeedsConfig": {
+          "type": "object",
+          "properties": {
+            "datasource": { "type": "string", "enum": ["config", "database"] },
+            "existingConfigMap": { "type": "string" },
+            "data": {
+              "type": "array",
+              "items": { "type": "object" }
+            },
+            "management": {
+              "type": "object",
+              "properties": {
+                "urlPrefix": { "type": "string" },
+                "ingress": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": { "$ref": "#/definitions/boolean" },
+                    "exposeCoreManagement": { "$ref": "#/definitions/boolean" },
+                    "annotations": {
+                      "type": "object",
+                      "properties": {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "resources": { "$ref": "#/definitions/resources" }
+      }
+    },
+    "ingress": {
+      "type": "object",
+      "properties": {
+        "enabled": { "$ref": "#/definitions/boolean" },
+        "host": { "type": "string" },
+        "basePath": { "type": "string" },
+        "className": { "type": "string" },
+        "annotations": {
+          "type": "object",
+          "properties": {}
+        },
+        "outboundConnectors": {
+          "type": "object",
+          "properties": {
+            "annotations": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        },
+        "demoButton": {
+          "type": "object",
+          "properties": {
+            "annotations": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        },
+        "tls": {
+          "type": "object",
+          "properties": {
+            "enabled": { "$ref": "#/definitions/boolean" },
+            "clusterIssuer": { "type": "string" },
+            "existingSecret": { "type": "string" }
+          }
+        }
+      }
+    },
+    "outboundConnectors": {
+      "type": "object",
+      "properties": {
+        "kafka": {
+          "type": "object",
+          "properties": {
+            "enabled": { "$ref": "#/definitions/boolean" },
+            "format": { "type": "string" },
+            "eddieId": { "type": "string" },
+            "properties": {
+              "type": "object",
+              "properties": {
+                "buffer.memory": { "type": "string" },
+                "message.max.bytes": { "type": "string" },
+                "max.request.size": { "type": "string" }
+              }
+            }
+          }
+        },
+        "amqp": {
+          "type": "object",
+          "properties": {
+            "enabled": { "$ref": "#/definitions/boolean" },
+            "format": { "type": "string" },
+            "uri": { "type": "string" },
+            "eddieId": { "type": "string" }
+          }
+        },
+        "rest": {
+          "type": "object",
+          "properties": {
+            "enabled": { "$ref": "#/definitions/boolean" },
+            "retentionTime": { "type": "string" },
+            "retentionRemoval": { "type": "string" },
+            "oauth2": {
+              "type": "object",
+              "properties": {
+                "enabled": { "$ref": "#/definitions/boolean" },
+                "issuerUrl": { "type": "string" },
+                "scopes": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": { "$ref": "#/definitions/boolean" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "metric": {
+          "type": "object",
+          "properties": {
+            "enabled": { "$ref": "#/definitions/boolean" },
+            "eddieId": { "type": "string" },
+            "interval": { "type": "string" },
+            "endpoint": { "type": "string" }
+          }
+        },
+        "adminConsole": {
+          "type": "object",
+          "properties": {
+            "enabled": { "$ref": "#/definitions/boolean" },
+            "access": {
+              "type": "object",
+              "properties": {
+                "ingress": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": { "$ref": "#/definitions/boolean" },
+                    "annotations": {
+                      "type": "object",
+                      "properties": {}
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": { "$ref": "#/definitions/boolean" },
+                    "provider": { "type": "string", "enum": ["traefik", "external", "app"] },
+                    "type": { "type": "string", "enum": ["basic"] }
+                  }
+                }
+              }
+            },
+            "login": {
+              "type": "object",
+              "properties": {
+                "enabled": { "$ref": "#/definitions/boolean" },
+                "mode": { "type": "string", "enum": ["basic", "keycloak"] },
+                "username": { "type": "string" },
+                "encodedPassword": { "type": "string" },
+                "keycloakClientID": { "type": "string" },
+                "keycloakClientSecret": { "type": "string" },
+                "keycloakIssuerURI": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "regionConnectors": {
+      "type": "object",
+      "properties": {
+        "existingSecret": { "type": "string" },
+        "simulation": {
+          "type": "object",
+          "properties": {
+            "enabled": { "$ref": "#/definitions/boolean" }
+          }
+        },
+        "cds": {
+          "type": "object",
+          "properties": {
+            "enabled": { "$ref": "#/definitions/boolean" },
+            "redirectUrl": { "type": "string" },
+            "clientName": { "type": "string" },
+            "par": {
+              "type": "object",
+              "properties": {
+                "enabled": { "$ref": "#/definitions/boolean" }
+              }
+            },
+            "retry": { "type": "string" },
+            "polling": { "type": "string" }
+          }
+        },
+        "aiida": {
+          "type": "object",
+          "properties": {
+            "enabled": { "$ref": "#/definitions/boolean" },
+            "customer": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string" }
+              }
+            },
+            "bcrypt": {
+              "type": "object",
+              "properties": {
+                "strength": { "$ref": "#/definitions/integer" }
+              }
+            },
+            "mqtt": {
+              "type": "object",
+              "properties": {
+                "server": {
+                  "type": "object",
+                  "properties": {
+                    "uri": { "type": "string" }
+                  }
+                },
+                "username": { "type": "string" },
+                "password": { "type": "string" }
+              }
+            }
+          }
+        },
+        "ponton": {
+          "type": "object",
+          "properties": {
+            "enabled": { "$ref": "#/definitions/boolean" },
+            "eligiblePartyId": { "type": "string" },
+            "retry": { "type": "string" },
+            "adapter": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string" },
+                "version": { "type": "string" }
+              }
+            },
+            "hostname": { "type": "string" },
+            "port": { "$ref": "#/definitions/integer" },
+            "apiEndpoint": { "type": "string" },
+            "folder": { "type": "string" },
+            "username": { "type": "string" },
+            "password": { "type": "string" },
+            "tls": {
+              "type": "object",
+              "properties": {
+                "truststore": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": { "$ref": "#/definitions/boolean" },
+                    "caCertificate": { "type": "string" }
+                  }
+                }
+              }
+            },
+            "persistence": {
+              "type": "object",
+              "properties": {
+                "storage": { "type": "string" },
+                "storageLimit": { "type": "string" }
+              }
+            }
+          }
+        },
+        "esDatadis": {
+          "type": "object",
+          "properties": {
+            "enabled": { "$ref": "#/definitions/boolean" },
+            "username": { "type": "string" },
+            "password": { "type": "string" },
+            "polling": { "type": "string" },
+            "retry": { "type": "string" },
+            "basePath": { "type": "string" }
+          }
+        },
+        "fiFingrid": {
+          "type": "object",
+          "properties": {
+            "enabled": { "$ref": "#/definitions/boolean" },
+            "apiUrl": { "type": "string" },
+            "polling": { "type": "string" },
+            "organisation": {
+              "type": "object",
+              "properties": {
+                "user": { "type": "string" },
+                "name": { "type": "string" }
+              }
+            },
+            "keystore": { "$ref": "#/definitions/keystore" }
+          }
+        },
+        "frEnedis": {
+          "type": "object",
+          "properties": {
+            "enabled": { "$ref": "#/definitions/boolean" },
+            "basePath": { "type": "string" },
+            "client": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string" },
+                "secret": { "type": "string" }
+              }
+            },
+            "polling": { "type": "string" }
+          }
+        },
+        "nlMijnAansluiting": {
+          "type": "object",
+          "properties": {
+            "enabled": { "$ref": "#/definitions/boolean" },
+            "issuerUrl": { "type": "string" },
+            "redirectUrl": { "type": "string" },
+            "continuous": {
+              "type": "object",
+              "properties": {
+                "clientId": { "type": "string" },
+                "scope": { "type": "string" },
+                "keyId": { "type": "string" }
+              }
+            },
+            "codeboekApi": { "type": "string" },
+            "codeboekApiToken": { "type": "string" },
+            "polling": { "type": "string" },
+            "keystore": { "$ref": "#/definitions/keystore" }
+          }
+        },
+        "usGreenButton": {
+          "type": "object",
+          "properties": {
+            "enabled": { "$ref": "#/definitions/boolean" },
+            "basePath": { "type": "string" },
+            "redirectUri": { "type": "string" },
+            "webhookSecret": { "type": "string" },
+            "polling": { "type": "string" },
+            "termination": {
+              "type": "object",
+              "properties": {
+                "retry": { "type": "string" }
+              }
+            },
+            "clients": {
+              "type": "array",
+              "items": {}
+            }
+          }
+        },
+        "dkEnerginet": {
+          "type": "object",
+          "properties": {
+            "enabled": { "$ref": "#/definitions/boolean" },
+            "customer": {
+              "type": "object",
+              "properties": {
+                "client": {
+                  "type": "object",
+                  "properties": {
+                    "basePath": { "type": "string" }
+                  }
+                }
+              }
+            },
+            "polling": { "type": "string" },
+            "retry": { "type": "string" }
+          }
+        },
+        "beFluvius": {
+          "type": "object",
+          "properties": {
+            "enabled": { "$ref": "#/definitions/boolean" },
+            "baseUrl": { "type": "string" },
+            "oauth": {
+              "type": "object",
+              "properties": {
+                "tokenUrl": { "type": "string" },
+                "clientId": { "type": "string" },
+                "clientSecret": { "type": "string" },
+                "tenantId": { "type": "string" },
+                "scope": { "type": "string" }
+              }
+            },
+            "subscriptionKey": { "type": "string" },
+            "contractNumber": { "type": "string" },
+            "mockMandates": { "$ref": "#/definitions/boolean" },
+            "redirectUri": { "type": "string" },
+            "retry": { "type": "string" },
+            "checkAcceptance": { "type": "string" },
+            "polling": { "type": "string" },
+            "tls": {
+              "type": "object",
+              "properties": {
+                "existingSecret": { "type": "string" },
+                "certificateFile": { "type": "string" },
+                "privateKeyFile": { "type": "string" }
+              }
+            }
+          }
+        },
+        "deEta": {
+          "type": "object",
+          "properties": {
+            "enabled": { "$ref": "#/definitions/boolean" },
+            "eligiblePartyId": { "type": "string" },
+            "apiBaseUrl": { "type": "string" },
+            "apiClientId": { "type": "string" },
+            "apiClientSecret": { "type": "string" },
+            "meteredDataEndpoint": { "type": "string" },
+            "accountingPointEndpoint": { "type": "string" },
+            "responseTimeoutSeconds": { "$ref": "#/definitions/integer" },
+            "retryMaxAttempts": { "$ref": "#/definitions/integer" },
+            "retryInitialBackoffSeconds": { "$ref": "#/definitions/integer" },
+            "sslEnabled": { "$ref": "#/definitions/boolean" },
+            "sslTrustAll": { "$ref": "#/definitions/boolean" },
+            "polling": { "type": "string" },
+            "auth": {
+              "type": "object",
+              "properties": {
+                "clientId": { "type": "string" },
+                "clientSecret": { "type": "string" },
+                "tokenUrl": { "type": "string" },
+                "authorizationUrl": { "type": "string" },
+                "redirectUri": { "type": "string" },
+                "scope": { "type": "string" }
+              }
+            }
+          }
+        },
+        "siMojElektro": {
+          "type": "object",
+          "properties": {
+            "enabled": { "$ref": "#/definitions/boolean" }
+          }
+        }
+      }
+    },
+    "mqtt": {
+      "type": "object",
+      "properties": {
+        "existingSecret": { "type": "string" },
+        "podAnnotations": {
+          "type": "object",
+          "properties": {}
+        },
+        "nodeSelector": {
+          "type": "object",
+          "properties": {}
+        },
+        "tolerations": {
+          "type": "array",
+          "items": {}
+        },
+        "affinity": {
+          "type": "object",
+          "properties": {}
+        },
+        "topologySpreadConstraints": {
+          "type": "array",
+          "items": {}
+        },
+        "podSecurityContext": {
+          "type": "object",
+          "properties": {}
+        },
+        "securityContext": { "$ref": "#/definitions/securityContext" },
+        "startupProbe": { "type": ["object", "null"] },
+        "readinessProbe": { "type": ["object", "null"] },
+        "livenessProbe": { "type": ["object", "null"] },
+        "provisioning": {
+          "type": "object",
+          "properties": {
+            "enabled": { "$ref": "#/definitions/boolean" },
+            "timeoutSeconds": {
+              "oneOf": [
+                { "type": "integer", "minimum": 5 },
+                { "type": "string", "pattern": "^-?[0-9]+$" }
+              ]
+            }
+          }
+        },
+        "broker": { "type": "string", "enum": ["mosquitto", "hivemq"] },
+        "imagePullSecrets": { "type": "array", "items": {} },
+        "replicaCount": {
+          "oneOf": [
+            { "type": "integer", "const": 1 },
+            { "type": "string", "pattern": "^1$" }
+          ]
+        },
+        "versions": {
+          "type": "object",
+          "properties": {
+            "mosquitto": { "type": "string" },
+            "hivemq": { "type": "string" }
+          }
+        },
+        "externalIP": { "type": "string" },
+        "externalAccess": {
+          "type": "object",
+          "properties": {
+            "enabled": { "$ref": "#/definitions/boolean" },
+            "plaintext": {
+              "type": "object",
+              "properties": {
+                "enabled": { "type": "boolean" }
+              }
+            },
+            "tls": {
+              "type": "object",
+              "properties": {
+                "enabled": { "$ref": "#/definitions/boolean" },
+                "existingSecret": { "type": "string" }
+              }
+            }
+          }
+        },
+        "db": {
+          "type": "object",
+          "properties": {
+            "username": { "type": "string" },
+            "password": { "type": "string" }
+          }
+        },
+        "cache": {
+          "type": "object",
+          "properties": {
+            "enabled": { "$ref": "#/definitions/boolean" },
+            "reset": { "$ref": "#/definitions/boolean" },
+            "refresh": { "$ref": "#/definitions/boolean" },
+            "authSeconds": { "$ref": "#/definitions/integer" },
+            "aclSeconds": { "$ref": "#/definitions/integer" },
+            "authJitterSeconds": { "$ref": "#/definitions/integer" },
+            "aclJitterSeconds": { "$ref": "#/definitions/integer" }
+          }
+        },
+        "mosquitto": {
+          "type": "object",
+          "properties": {
+            "image": {
+              "type": "object",
+              "properties": {
+                "repository": { "type": "string" },
+                "pullPolicy": { "type": "string" }
+              }
+            },
+            "maxQueuedMessages": { "$ref": "#/definitions/integer" },
+            "maxQueuedBytes": { "$ref": "#/definitions/integer" },
+            "maxConnections": { "$ref": "#/definitions/integer" },
+            "queries": {
+              "type": "object",
+              "properties": {
+                "password": { "$ref": "#/definitions/singleLineSql" },
+                "superuser": { "$ref": "#/definitions/singleLineSql" },
+                "acl": { "$ref": "#/definitions/singleLineSql" }
+              }
+            }
+          }
+        },
+        "hivemq": {
+          "type": "object",
+          "properties": {
+            "image": {
+              "type": "object",
+              "properties": {
+                "repository": { "type": "string" },
+                "pullPolicy": { "type": "string" }
+              }
+            },
+            "maxConnections": { "$ref": "#/definitions/integer" },
+            "maxQueuedMessages": { "$ref": "#/definitions/integer" },
+            "cacheMaximumEntries": { "$ref": "#/definitions/integer" },
+            "callbackTimeoutMs": { "$ref": "#/definitions/integer" },
+            "maximumUsernameBytes": { "$ref": "#/definitions/integer" },
+            "maximumPasswordBytes": { "$ref": "#/definitions/integer" },
+            "database": {
+              "type": "object",
+              "properties": {
+                "poolMaximumSize": { "$ref": "#/definitions/integer" },
+                "poolMinimumIdle": { "$ref": "#/definitions/integer" },
+                "connectionTimeoutMs": { "$ref": "#/definitions/integer" },
+                "validationTimeoutMs": { "$ref": "#/definitions/integer" },
+                "idleTimeoutMs": { "$ref": "#/definitions/integer" },
+                "maxLifetimeMs": { "$ref": "#/definitions/integer" },
+                "queryTimeoutSeconds": { "$ref": "#/definitions/integer" }
+              }
+            },
+            "localSuperuser": {
+              "type": "object",
+              "properties": {
+                "enabled": { "$ref": "#/definitions/boolean" }
+              }
+            },
+            "queries": {
+              "type": "object",
+              "properties": {
+                "password": { "type": "string" },
+                "superuser": { "type": "string" },
+                "acl": { "type": "string" },
+                "publishAction": { "type": "string" },
+                "subscribeAction": { "type": "string" }
+              }
+            }
+          }
+        },
+        "ports": {
+          "type": "object",
+          "properties": {
+            "mqtt": {
+              "oneOf": [
+                { "type": "integer", "minimum": 1, "maximum": 65535 },
+                { "type": "string", "pattern": "^-?[0-9]+$" }
+              ]
+            },
+            "ssl": {
+              "oneOf": [
+                { "type": "integer", "minimum": 1, "maximum": 65535 },
+                { "type": "string", "pattern": "^-?[0-9]+$" }
+              ]
+            }
+          }
+        },
+        "persistence": { "$ref": "#/definitions/persistence" },
+        "resources": { "$ref": "#/definitions/resources" }
+      }
+    },
+    "networkPolicy": {
+      "type": "object",
+      "properties": {
+        "enabled": { "$ref": "#/definitions/boolean" },
+        "extraIngress": {
+          "type": "array",
+          "items": {}
+        },
+        "egress": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {}
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "singleLineSql": {
+      "description": "Nonempty SQL on one configuration line; use YAML >- to fold long queries.",
+      "type": "string",
+      "minLength": 1,
+      "not": { "pattern": "[\r\n]" }
+    },
+    "boolean": {
+      "oneOf": [
+        { "type": "boolean" },
+        { "type": "string", "enum": ["true", "false"] }
+      ]
+    },
+    "resourceRange": {
+      "type": "object",
+      "properties": {
+        "min": { "type": ["string", "number"] },
+        "max": { "type": ["string", "number"] }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "properties": {
+        "memory": { "$ref": "#/definitions/resourceRange" },
+        "cpu": { "$ref": "#/definitions/resourceRange" },
+        "ephemeralStorage": { "$ref": "#/definitions/resourceRange" }
+      }
+    },
+    "securityContext": {
+      "type": "object",
+      "properties": {
+        "allowPrivilegeEscalation": { "$ref": "#/definitions/boolean" },
+        "capabilities": {
+          "type": "object",
+          "properties": {
+            "drop": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        },
+        "seccompProfile": {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string" }
+          }
+        }
+      }
+    },
+    "persistence": {
+      "type": "object",
+      "properties": {
+        "storageClass": { "type": ["string", "null"] },
+        "size": { "type": "string" },
+        "storageLimit": { "type": "string" }
+      }
+    },
+    "keystore": {
+      "type": "object",
+      "properties": {
+        "existingSecret": { "type": "string" },
+        "password": { "type": "string" },
+        "keyAlias": { "type": "string" },
+        "keyPassword": { "type": "string" }
+      }
+    },
+    "integer": {
+      "oneOf": [
+        { "type": "integer" },
+        { "type": "string", "pattern": "^-?[0-9]+$" }
+      ]
+    },
+    "tcpSocket": {
+      "type": "object",
+      "properties": {
+        "port": { "type": "string" }
+      }
+    }
+  }
+}

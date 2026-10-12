@@ -1,0 +1,154 @@
+{{- $mqtt := include "eddie.componentValues" (dict "root" . "component" "mqtt") | fromYaml }}
+{{- if eq (include "eddie.mqtt.broker" .) "hivemq" }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Release.Name }}-hivemq
+  {{- include "eddie.hivemq.labels" . | indent 2 }}
+spec:
+  serviceName: {{ include "eddie.mqtt.serviceName" . }}
+  replicas: {{ $mqtt.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-hivemq
+  template:
+    metadata:
+      annotations:
+        {{- with $mqtt.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        checksum/secret: {{ include (print $.Template.BasePath "/mqtt/hivemq/hivemq-secret.yaml") . | sha256sum }}
+      {{- include "eddie.hivemq.labels" . | indent 6 }}
+    spec:
+      automountServiceAccountToken: false
+      {{- include "eddie.podScheduling" $mqtt | nindent 6 }}
+      {{- include "eddie.mqtt.imagePullSecrets" . | nindent 6 }}
+      {{- $podSecurityDefaults := dict
+        "runAsUser" 10000
+        "runAsGroup" 0
+        "runAsNonRoot" true
+        "fsGroup" 0
+        "fsGroupChangePolicy" "OnRootMismatch"
+        "seccompProfile" (dict "type" "RuntimeDefault")
+      }}
+      securityContext:
+        {{- toYaml (mergeOverwrite $podSecurityDefaults ($mqtt.podSecurityContext | default dict)) | nindent 8 }}
+      containers:
+        - name: hivemq
+          image: "{{ $mqtt.hivemq.image.repository }}:{{ $mqtt.versions.hivemq }}"
+          imagePullPolicy: {{ $mqtt.hivemq.image.pullPolicy | default "IfNotPresent" }}
+          ports:
+            - name: mqtt
+              containerPort: 1883
+            {{- if eq (include "eddie.mqtt.externalTlsEnabled" .) "true" }}
+            - name: mqttssl
+              containerPort: 8883
+            {{- end }}
+          securityContext:
+            {{- include "eddie.mqtt.securityContext" . | nindent 12 }}
+          {{- include "eddie.mqtt.probes" $mqtt | nindent 10 }}
+          resources:
+            {{- include "eddie.resources" $mqtt.resources | nindent 12 }}
+          env:
+            - name: HIVEMQ_ALLOW_ALL_CLIENTS
+              value: "false"
+            - name: HIVEMQ_DB_URL
+              value: {{ include "eddie.postgres-url" . }}
+            - name: HIVEMQ_DB_USERNAME
+              value: {{ $mqtt.db.username | default "emqx" | quote }}
+            - name: HIVEMQ_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "eddie.mqtt.secretName" . }}
+                  key: dbPassword
+            - name: AIIDA_MQTT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "eddie.mqtt.secretName" . }}
+                  key: mqttPassword
+            - name: HIVEMQ_DB_POOL_MAX_SIZE
+              value: {{ $mqtt.hivemq.database.poolMaximumSize | int64 | quote }}
+            - name: HIVEMQ_DB_POOL_MIN_IDLE
+              value: {{ $mqtt.hivemq.database.poolMinimumIdle | int64 | quote }}
+            - name: HIVEMQ_DB_CONNECTION_TIMEOUT_MS
+              value: {{ $mqtt.hivemq.database.connectionTimeoutMs | int64 | quote }}
+            - name: HIVEMQ_DB_VALIDATION_TIMEOUT_MS
+              value: {{ $mqtt.hivemq.database.validationTimeoutMs | int64 | quote }}
+            - name: HIVEMQ_DB_IDLE_TIMEOUT_MS
+              value: {{ $mqtt.hivemq.database.idleTimeoutMs | int64 | quote }}
+            - name: HIVEMQ_DB_MAX_LIFETIME_MS
+              value: {{ $mqtt.hivemq.database.maxLifetimeMs | int64 | quote }}
+            - name: HIVEMQ_DB_QUERY_TIMEOUT_SECONDS
+              value: {{ $mqtt.hivemq.database.queryTimeoutSeconds | int64 | quote }}
+            - name: HIVEMQ_PASSWORD_QUERY
+              value: {{ $mqtt.hivemq.queries.password | quote }}
+            - name: HIVEMQ_SUPERUSER_QUERY
+              value: {{ $mqtt.hivemq.queries.superuser | quote }}
+            - name: HIVEMQ_ACL_QUERY
+              value: {{ $mqtt.hivemq.queries.acl | quote }}
+            - name: HIVEMQ_PUBLISH_ACTION
+              value: {{ $mqtt.hivemq.queries.publishAction | quote }}
+            - name: HIVEMQ_SUBSCRIBE_ACTION
+              value: {{ $mqtt.hivemq.queries.subscribeAction | quote }}
+            - name: HIVEMQ_CACHE_ENABLED
+              value: {{ $mqtt.cache.enabled | quote }}
+            - name: HIVEMQ_AUTH_CACHE_SECONDS
+              value: {{ $mqtt.cache.authSeconds | int64 | quote }}
+            - name: HIVEMQ_ACL_CACHE_SECONDS
+              value: {{ $mqtt.cache.aclSeconds | int64 | quote }}
+            - name: HIVEMQ_AUTH_CACHE_JITTER_SECONDS
+              value: {{ $mqtt.cache.authJitterSeconds | int64 | quote }}
+            - name: HIVEMQ_ACL_CACHE_JITTER_SECONDS
+              value: {{ $mqtt.cache.aclJitterSeconds | int64 | quote }}
+            - name: HIVEMQ_CACHE_MAXIMUM_ENTRIES
+              value: {{ $mqtt.hivemq.cacheMaximumEntries | int64 | quote }}
+            - name: HIVEMQ_LOCAL_SUPERUSER_ENABLED
+              value: {{ $mqtt.hivemq.localSuperuser.enabled | quote }}
+            - name: HIVEMQ_LOCAL_SUPERUSER_USERNAME
+              value: {{ include "eddie.mqtt.localUsername" . | quote }}
+            - name: HIVEMQ_AUTH_CALLBACK_TIMEOUT_MS
+              value: {{ $mqtt.hivemq.callbackTimeoutMs | int64 | quote }}
+            - name: HIVEMQ_MAXIMUM_USERNAME_BYTES
+              value: {{ $mqtt.hivemq.maximumUsernameBytes | int64 | quote }}
+            - name: HIVEMQ_MAXIMUM_PASSWORD_BYTES
+              value: {{ $mqtt.hivemq.maximumPasswordBytes | int64 | quote }}
+            - name: HIVEMQ_MAX_CONNECTIONS
+              value: {{ $mqtt.hivemq.maxConnections | int64 | quote }}
+            - name: HIVEMQ_MAX_QUEUED_MESSAGES
+              value: {{ $mqtt.hivemq.maxQueuedMessages | int64 | quote }}
+            - name: HIVEMQ_TLS_ENABLED
+              value: {{ include "eddie.mqtt.externalTlsEnabled" . | quote }}
+          volumeMounts:
+            - name: hivemq-data
+              mountPath: /opt/hivemq/data
+            {{- include "eddie.postgres.sslRootCertMount" . | nindent 12 }}
+            {{- if eq (include "eddie.mqtt.externalTlsEnabled" .) "true" }}
+            - name: mqtt-tls
+              mountPath: /etc/mqtt-tls
+              readOnly: true
+            {{- end }}
+      {{- if or (eq (include "eddie.mqtt.externalTlsEnabled" .) "true") (include "eddie.postgres.sslRootCertPath" .) }}
+      volumes:
+        {{- include "eddie.postgres.sslRootCertVolume" . | nindent 8 }}
+        {{- if eq (include "eddie.mqtt.externalTlsEnabled" .) "true" }}
+        - name: mqtt-tls
+          secret:
+            secretName: {{ include "eddie.mqtt.externalTlsSecretName" . }}
+        {{- end }}
+      {{- end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: hivemq-data
+      spec:
+        {{- if ne $mqtt.persistence.storageClass nil }}
+        storageClassName: {{ $mqtt.persistence.storageClass | quote }}
+        {{- end }}
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: {{ $mqtt.persistence.size | default "1Gi" | quote }}
+          {{- if $mqtt.persistence.storageLimit }}
+          limits:
+            storage: {{ $mqtt.persistence.storageLimit | quote }}
+          {{- end }}
+{{- end }}

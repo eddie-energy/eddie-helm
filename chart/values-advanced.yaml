@@ -1,0 +1,246 @@
+# Advanced defaults, loaded automatically by the chart.
+# Override any key in your own values file using its path below.
+# Maps merge recursively, except probe objects which replace their defaults.
+# Lists replace the entire default list.
+# Keep credentials in a private override file or use existingSecret.
+
+# Container security and health checks. See README.md#security-and-workload-controls.
+core:
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: RuntimeDefault
+  startupProbe:
+    tcpSocket:
+      port: api
+    periodSeconds: 5
+    failureThreshold: 60
+  readinessProbe:
+    tcpSocket:
+      port: api
+    periodSeconds: 10
+  livenessProbe: {}
+
+postgres:
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["NET_RAW"]
+    seccompProfile:
+      type: RuntimeDefault
+  startupProbe:
+    exec:
+      command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+    failureThreshold: 60
+    periodSeconds: 5
+  readinessProbe:
+    exec:
+      command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+    periodSeconds: 10
+  livenessProbe: {}
+
+# Broker queues, authentication caches, connection pools, and SQL queries.
+mqtt:
+  # Merged over broker defaults; HiveMQ drops ALL capabilities.
+  securityContext: {}
+  # Null uses the built-in TCP probe defaults; {} disables the probe.
+  startupProbe: null
+  readinessProbe: null
+  livenessProbe: null
+  cache:
+    enabled: true
+    reset: true
+    refresh: true
+    authSeconds: 300
+    aclSeconds: 300
+    authJitterSeconds: 15
+    aclJitterSeconds: 15
+  mosquitto:
+    image:
+      repository: "ghcr.io/lhns/mosquitto-go-auth"
+      pullPolicy: "IfNotPresent"
+    maxQueuedMessages: 200000
+    maxQueuedBytes: 0
+    maxConnections: -1
+    # PostgreSQL placeholders: $1 = username; ACL $2 = access (1/4 subscribe, 2 publish).
+    queries:
+      password: "SELECT password_hash FROM aiida.aiida_mqtt_user WHERE username = $1 LIMIT 1;"
+      superuser: "SELECT count(*) FROM aiida.aiida_mqtt_user WHERE username = $1 AND is_superuser = true;"
+      acl: "SELECT topic FROM aiida.aiida_mqtt_acl WHERE username = $1 AND acl_type = 'ALLOW' AND (($2 = 2 AND action = 'PUBLISH') OR ($2 IN (1,4) AND action = 'SUBSCRIBE'));"
+  hivemq:
+    image:
+      repository: "ghcr.io/flexidata-at/eddie-mqtt-auth-hivemq"
+      pullPolicy: "IfNotPresent"
+    maxConnections: -1
+    maxQueuedMessages: 200000
+    cacheMaximumEntries: 10000
+    callbackTimeoutMs: 5000
+    maximumUsernameBytes: 1024
+    maximumPasswordBytes: 4096
+    database:
+      poolMaximumSize: 4
+      poolMinimumIdle: 0
+      connectionTimeoutMs: 3000
+      validationTimeoutMs: 2000
+      idleTimeoutMs: 600000
+      maxLifetimeMs: 1800000
+      queryTimeoutSeconds: 3
+    localSuperuser:
+      enabled: true
+    queries:
+      password: "SELECT password_hash FROM aiida.aiida_mqtt_user WHERE username = ? LIMIT 1;"
+      superuser: "SELECT count(*) FROM aiida.aiida_mqtt_user WHERE username = ? AND is_superuser = true;"
+      acl: "SELECT topic FROM aiida.aiida_mqtt_acl WHERE username = ? AND acl_type = 'ALLOW' AND action = ?;"
+      publishAction: "PUBLISH"
+      subscribeAction: "SUBSCRIBE"
+
+# Kafka topics, users, storage type, and replication/ISR tuning.
+kafka:
+  # EDDIE's instance topics are generated automatically. Add custom topics here.
+  topics: []
+  # Additional users. The dedicated core application user is always created.
+  users: []
+  strimzi:
+    metadataVersion: ""
+    storage:
+      type: "persistent-claim"
+    offsetsTopicReplicationFactor: 1
+    transactionStateLogReplicationFactor: 1
+    transactionStateLogMinIsr: 1
+    defaultReplicationFactor: 1
+    minInsyncReplicas: 1
+
+# Enable connectors in values.yaml; configure credentials and endpoints here
+# through matching keys in your private override file.
+regionConnectors:
+  cds:
+    redirectUrl: ""
+    clientName: "EDDIE"
+    par:
+      enabled: false
+    retry: "0 0 * * * *"
+    polling: "0 0 17 * * *"
+  ponton:
+    eligiblePartyId: "CHANGEME"
+    retry: "0 0 */1 * * *"
+    adapter:
+      id: "CHANGEME"
+      version: "5.1.0"
+    hostname: "XP.MESSENGER.HOST"
+    port: 2600
+    apiEndpoint: "XP.MESSENGER.HOST:2600/api"
+    folder: "/opt/ponton"
+    username: "CHANGEME"
+    password: "CHANGEME"
+    tls:
+      truststore:
+        enabled: false
+        caCertificate: ""
+    persistence:
+      storage: "1Gi"
+      storageLimit: "2Gi"
+  esDatadis:
+    username: "CHANGEME"
+    password: "CHANGEME"
+    polling: "0 0 17 * * *"
+    retry: "0 0 * * * *"
+    basePath: "https://datadis.es/"
+  fiFingrid:
+    apiUrl: "https://dh-fingrid-cert01-b2b.azurewebsites.net/rest/FGR/"
+    polling: "0 0 17 * * *"
+    organisation:
+      user: "CHANGEME"
+      name: "CHANGEME"
+    keystore:
+      # Use a pre-existing Secret containing fingrid.jks.
+      existingSecret: ""
+      password: "CHANGEME"
+      keyAlias: "CHANGEME"
+      keyPassword: "CHANGEME"
+  frEnedis:
+    basePath: "https://gw.ext.prod.api.enedis.fr"
+    client:
+      id: "CHANGEME"
+      secret: "CHANGEME"
+    polling: "0 0 17 * * *"
+  nlMijnAansluiting:
+    issuerUrl: "https://www.acc.mijnenergiedata.nl/autorisatieregister"
+    redirectUrl: ""
+    continuous:
+      clientId: "CHANGEME"
+      scope: "24_maanden_dagstanden"
+      keyId: "CHANGEME"
+    codeboekApi: "https://gateway.edsn.nl/eancodeboek/v1/ecbinfoset"
+    codeboekApiToken: "CHANGEME"
+    polling: "0 0 17 * * *"
+    keystore:
+      # Use a pre-existing Secret containing aansluiting.jks.
+      existingSecret: ""
+      password: "CHANGEME"
+      keyAlias: "CHANGEME"
+      keyPassword: "CHANGEME"
+  usGreenButton:
+    basePath: "https://utilityapi.com/"
+    redirectUri: ""
+    webhookSecret: "CHANGEME"
+    polling: "0 0 17 * * *"
+    termination:
+      retry: "0 0 * * * *"
+    clients: []
+    # - name: "DEMOUTILITY"
+    #   clientId: "CHANGEME"
+    #   clientSecret: "CHANGEME"
+    #   token: "CHANGEME"
+  dkEnerginet:
+    customer:
+      client:
+        basePath: "https://api.eloverblik.dk/"
+    polling: "0 0 17 * * *"
+    retry: "0 0 17 * * *"
+  beFluvius:
+    baseUrl: "CHANGEME"
+    oauth:
+      tokenUrl: ""
+      clientId: "CHANGEME"
+      clientSecret: "CHANGEME"
+      tenantId: "CHANGEME"
+      scope: "CHANGEME"
+    subscriptionKey: "CHANGEME"
+    contractNumber: "CHANGEME"
+    mockMandates: false
+    redirectUri: ""
+    retry: "0 0 * * * *"
+    checkAcceptance: "0 0 * * * *"
+    polling: "0 0 17 * * *"
+    tls:
+      # Use a pre-existing Secret containing the certificate and private key files.
+      existingSecret: ""
+      certificateFile: "certificate.cer"
+      privateKeyFile: "certificate.key"
+  deEta:
+    eligiblePartyId: "CHANGEME"
+    apiBaseUrl: "https://int.eta-plus.com/api"
+    apiClientId: "CHANGEME"
+    apiClientSecret: "CHANGEME"
+    meteredDataEndpoint: "/meters/historical"
+    accountingPointEndpoint: "/meters/accounting-point"
+    responseTimeoutSeconds: 30
+    retryMaxAttempts: 3
+    retryInitialBackoffSeconds: 2
+    sslEnabled: true
+    sslTrustAll: false
+    polling: "0 0 17 * * *"
+    auth:
+      clientId: "CHANGEME"
+      clientSecret: "CHANGEME"
+      tokenUrl: "https://int.eta-plus.com/api/account/oauth/access-grant"
+      authorizationUrl: "https://int.eta-plus.com/#/oauth-redirect"
+      redirectUri: ""
+      scope: "metered-data"

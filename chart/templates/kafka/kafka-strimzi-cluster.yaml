@@ -1,0 +1,148 @@
+{{- $kafka := include "eddie.componentValues" (dict "root" . "component" "kafka") | fromYaml }}
+{{- $clusterName := include "eddie.kafka.strimzi.clusterName" . }}
+{{- $adminUserName := include "eddie.kafka.adminUserName" . }}
+{{- $externalHost := include "eddie.kafka.externalHost" . }}
+{{- $externalTlsSecretName := include "eddie.kafka.externalTlsSecretName" . }}
+{{- $externalTlsClusterIssuer := include "eddie.kafka.externalTlsClusterIssuer" . }}
+{{- $kafkaCertManagerEnabled := eq (toString $kafka.externalAccess.certManager.enabled) "true" }}
+{{- $externalTlsExistingSecret := $kafka.externalAccess.tls.existingSecret }}
+{{- if and (eq (toString $kafka.externalAccess.enabled) "true") $kafkaCertManagerEnabled $externalTlsClusterIssuer (not $externalTlsExistingSecret) }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ $externalTlsSecretName }}
+{{ include "eddie.kafka.labels" . | indent 2 }}
+spec:
+  secretName: {{ $externalTlsSecretName }}
+  dnsNames:
+    - {{ $externalHost | quote }}
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: {{ $externalTlsClusterIssuer | quote }}
+  privateKey:
+    encoding: {{ default "PKCS8" $kafka.externalAccess.certManager.privateKeyEncoding | quote }}
+  usages:
+    - digital signature
+    - key encipherment
+---
+{{- end }}
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaNodePool
+metadata:
+  name: {{ include "eddie.kafka.poolName" . }}
+  labels:
+    strimzi.io/cluster: {{ $clusterName }}
+    app: {{ .Release.Name }}-kafka
+{{ include "eddie.labels" . | indent 2 }}
+spec:
+  replicas: {{ $kafka.replicaCount }}
+  roles:
+    - controller
+    - broker
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: {{ $kafka.strimzi.storage.type | default "persistent-claim" }}
+        size: {{ $kafka.persistence.size | default "5Gi" }}
+        {{- if ne $kafka.persistence.storageClass nil }}
+        class: {{ $kafka.persistence.storageClass | quote }}
+        {{- end }}
+        deleteClaim: false
+        kraftMetadata: shared
+  resources:
+    {{- include "eddie.resources" $kafka.resources | nindent 4 }}
+---
+apiVersion: kafka.strimzi.io/v1
+kind: Kafka
+metadata:
+  name: {{ $clusterName }}
+  annotations:
+    strimzi.io/node-pools: enabled
+    strimzi.io/kraft: enabled
+  labels:
+    app: {{ .Release.Name }}-kafka
+{{ include "eddie.labels" . | indent 2 }}
+spec:
+  kafka:
+    version: {{ $kafka.strimzi.kafkaVersion | quote }}
+    {{- if $kafka.strimzi.metadataVersion }}
+    metadataVersion: {{ $kafka.strimzi.metadataVersion | quote }}
+    {{- end }}
+    listeners:
+      - name: internal
+        port: 9094
+        type: internal
+        tls: false
+        authentication:
+          type: scram-sha-512
+      {{- if eq (toString $kafka.externalAccess.enabled) "true" }}
+      - name: external
+        port: {{ $kafka.externalPort }}
+        type: cluster-ip
+        tls: true
+        authentication:
+          type: scram-sha-512
+        configuration:
+          {{- if or $externalTlsExistingSecret $kafkaCertManagerEnabled }}
+          brokerCertChainAndKey:
+            secretName: {{ $externalTlsSecretName }}
+            certificate: tls.crt
+            key: tls.key
+          {{- end }}
+          brokers:
+            - broker: 0
+              advertisedHost: {{ $externalHost | quote }}
+              advertisedPort: {{ $kafka.externalPort }}
+      {{- end }}
+    authorization:
+      type: simple
+      superUsers:
+        - {{ $adminUserName | quote }}
+    config:
+      auto.create.topics.enable: {{ eq (toString $kafka.autocreateTopics) "true" }}
+      default.replication.factor: {{ $kafka.strimzi.defaultReplicationFactor | default 1 }}
+      min.insync.replicas: {{ $kafka.strimzi.minInsyncReplicas | default 1 }}
+      offsets.topic.replication.factor: {{ $kafka.strimzi.offsetsTopicReplicationFactor | default 1 }}
+      transaction.state.log.replication.factor: {{ $kafka.strimzi.transactionStateLogReplicationFactor | default 1 }}
+      transaction.state.log.min.isr: {{ $kafka.strimzi.transactionStateLogMinIsr | default 1 }}
+      socket.receive.buffer.bytes: 102400
+      socket.send.buffer.bytes: 102400
+      socket.request.max.bytes: 104857600
+      message.max.bytes: 104857600
+      replica.fetch.max.bytes: 104857600
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}
+{{- if and (eq (toString $kafka.externalAccess.enabled) "true") (eq ($kafka.externalAccess.type | default "loadBalancer") "loadBalancer") }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-kafka-load-balancer
+  {{- if $kafka.loadBalancerAnnotation }}
+  annotations:
+    {{- toYaml $kafka.loadBalancerAnnotation | nindent 4 }}
+  {{- end }}
+  labels:
+    app: {{ .Release.Name }}-kafka
+{{ include "eddie.labels" . | indent 2 }}
+spec:
+  type: LoadBalancer
+  {{- $kafkaExternalIP := include "eddie.kafka.externalIP" . }}
+  {{- if $kafkaExternalIP }}
+  loadBalancerIP: {{ $kafkaExternalIP | quote }}
+  {{- end }}
+  selector:
+    strimzi.io/cluster: {{ $clusterName }}
+    strimzi.io/kind: Kafka
+    strimzi.io/name: {{ printf "%s-kafka" $clusterName }}
+    strimzi.io/pool-name: {{ include "eddie.kafka.poolName" . }}
+    strimzi.io/pod-name: {{ printf "%s-%s-0" $clusterName (include "eddie.kafka.poolName" .) }}
+  ports:
+    - name: kafka-external
+      port: {{ $kafka.externalPort }}
+      protocol: TCP
+      targetPort: tcp-external
+{{- end }}

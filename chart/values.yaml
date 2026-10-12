@@ -1,0 +1,287 @@
+# Chart defaults. Start with examples/values.internal.yaml or examples/values.public.yaml.
+# Create the referenced Secrets using README.md, then override only what you need.
+# Use YAML booleans for feature flags.
+# Advanced defaults (queries, tuning, connector options): values-advanced.yaml.
+# Copy only the keys you need into your override file; advanced defaults load automatically.
+
+global:
+  # Shared defaults; component overrides take precedence (see README.md).
+  host: "eddie.example.com"
+  externalIP: ""
+  eddieId: "eddie"
+
+ingress:
+  enabled: false
+  basePath: ""
+  className: "traefik"
+  tls:
+    enabled: true
+    clusterIssuer: "letsencrypt-prod"
+    # Use a pre-existing TLS Secret instead of cert-manager's <release>-tls Secret.
+    existingSecret: ""
+
+core:
+  replicaCount: 1
+  image: "ghcr.io/eddie-energy/eddie"
+  version: "v1.43.0"
+  logLevel: "INFO"
+  demoButton: true
+  # Credentials: supply values below or reference an existing Kubernetes Secret.
+  existingSecret: ""
+  # Exactly 32 UTF-8 bytes of raw secret text. Prefer existingSecret for random binary keys.
+  # existingSecret.jwtHmacSecret contains the Base64 encoding of 32 random bytes.
+  jwtHmacSecret: ""
+  auth:
+    # Shared edge/proxy authentication for protected EDDIE management surfaces.
+    # Applies to data-needs management, core management, and the admin console when adminConsole.access.auth.provider is traefik.
+    enabled: true
+    type: "basic"
+    # traefik creates a Traefik Middleware and htpasswd Secret.
+    # external expects auth to be configured outside this chart, usually with ingress annotations or another proxy.
+    provider: "traefik"
+    realm: "EDDIE Management API"
+    existingSecret: ""
+    # Precomputed htpasswd records. Leave empty to hash users[].password.
+    htpasswd: ""
+    users:
+      - name: "CHANGEME"
+        password: "CHANGEME"
+  dataNeedsConfig:
+    datasource: "config"
+    existingConfigMap: ""
+    # Inline data-needs list. Empty uses the bundled examples.
+    data: []
+    management:
+      urlPrefix: "management"
+      ingress:
+        enabled: true
+        # Also expose /<context>/management for the admin console's region-connector management calls.
+        exposeCoreManagement: true
+  # Resource min/max map to Kubernetes requests/limits.
+  resources:
+    memory: { min: "256Mi", max: "2Gi" }
+    cpu: { min: "200m", max: "1" }
+    ephemeralStorage: { min: "50Mi", max: "2Gi" }
+
+postgres:
+  enabled: true
+  # External database host, used when enabled=false.
+  host: ""
+  port: 5432
+  database: "eddie"
+  ssl:
+    # Empty means disable for bundled PostgreSQL and require for an external database.
+    # Supported modes: disable, require, verify-ca, verify-full.
+    mode: ""
+    rootCert:
+      # Optional Secret containing the CA certificate used by all database clients.
+      existingSecret: ""
+      key: "ca.crt"
+  # Credentials: supply values below or reference an existing Kubernetes Secret.
+  existingSecret: ""
+  username: "CHANGEME"
+  password: "CHANGEME"
+  persistence:
+    storageClass: null
+    size: "1Gi"
+    storageLimit: "2Gi"
+  # Resource min/max map to Kubernetes requests/limits.
+  resources:
+    memory: { min: "256Mi", max: "2Gi" }
+    cpu: { min: "200m", max: "1" }
+    ephemeralStorage: { min: "50Mi", max: "2Gi" }
+  replicaCount: 1
+  image: "postgres"
+  version: "17.10"
+  imagePullPolicy: IfNotPresent
+
+mqtt:
+  # Supported values: mosquitto, hivemq.
+  # Mosquitto is the default broker.
+  broker: mosquitto
+  # Applies to either broker. HiveMQ requires access to its extension image.
+  imagePullSecrets: []
+  # Credentials: supply values below or reference an existing Kubernetes Secret.
+  existingSecret: ""
+  db:
+    # EDDIE database grants require this role name, independently of the MQTT broker.
+    username: "emqx"
+    password: "CHANGEME"
+  # Provision the MQTT database role before core initialises its database schema.
+  provisioning:
+    enabled: true
+    timeoutSeconds: 300
+  externalAccess:
+    enabled: false
+    plaintext:
+      # Expose the unencrypted public listener only when explicitly required.
+      enabled: false
+    tls:
+      enabled: true
+      # Use a pre-existing TLS Secret. Unset reuses the ingress TLS Secret.
+      existingSecret: ""
+  ports:
+    # Public Service ports. The internal broker listener remains on 1883.
+    mqtt: 1883
+    ssl: 8883
+  persistence:
+    storageClass: null
+    size: "1Gi"
+    storageLimit: "2Gi"
+  # Resource min/max map to Kubernetes requests/limits.
+  resources:
+    memory: { min: "512Mi", max: "2Gi" }
+    cpu: { min: "500m", max: "2" }
+    ephemeralStorage: { min: "50Mi", max: "1Gi" }
+  replicaCount: 1
+  versions:
+    mosquitto: "3.5.0-mosquitto_2.1.2"
+    hivemq: "sha-78a19bd"
+
+kafka:
+  replicaCount: 1
+  autocreateTopics: true
+  persistence:
+    storageClass: null
+    size: "5Gi"
+  externalAccess:
+    enabled: false
+    host: ""
+    tls:
+      # Use a pre-existing TLS Secret and skip the chart-managed Certificate.
+      existingSecret: ""
+    certManager:
+      enabled: true
+      # Defaults to ingress.tls.clusterIssuer when unset.
+      clusterIssuer: ""
+      privateKeyEncoding: "PKCS8"
+  externalPort: 9095
+  strimzi:
+    kafkaVersion: "4.3.0"
+  controllerUser:
+    # Defaults to <release>-kafka-admin-user when unset.
+    name: ""
+  coreUser:
+    # Dedicated application account, restricted to this EDDIE instance's topics.
+    # Defaults to <release>-kafka-core-user.
+    name: ""
+  resources:
+    memory: { min: "512Mi", max: "4Gi" }
+    cpu: { min: "200m", max: "1" }
+    ephemeralStorage: { min: "50Mi", max: "2Gi" }
+
+outboundConnectors:
+  kafka:
+    enabled: true
+    format: "xml"
+    properties:
+      buffer.memory: "104857600"
+      message.max.bytes: "104857600"
+      max.request.size: "104857600"
+  amqp:
+    enabled: false
+    format: "json"
+    uri: ""
+  rest:
+    enabled: false
+    retentionTime: "PT48H"
+    retentionRemoval: "0 0 * * * *"
+    oauth2:
+      enabled: false
+      issuerUrl: ""
+      scopes:
+        enabled: false
+  metric:
+    enabled: false
+    interval: "0 0 */12 * * *"
+    endpoint: "https://eddie.energy/metadata-sharing"
+  adminConsole:
+    enabled: true
+    access:
+      ingress:
+        enabled: true
+      auth:
+        # Default secure mode: protect the admin console at the same edge/proxy boundary as management APIs.
+        enabled: true
+        # traefik reuses the chart-managed management basic-auth middleware.
+        # external only applies access.ingress.annotations and expects auth to be configured outside this chart.
+        # app relies on EDDIE admin-console application login.
+        provider: "traefik"
+        type: "basic"
+    login:
+      # Application-level login. Keep disabled when using edge auth.
+      enabled: false
+      mode: "basic"
+      username: "admin"
+      # Required BCrypt hash when basic application login is enabled.
+      encodedPassword: ""
+      # Required when mode is keycloak; configure a client in an external Keycloak instance.
+      keycloakClientID: ""
+      keycloakClientSecret: ""
+      keycloakIssuerURI: ""
+
+regionConnectors:
+  existingSecret: ""
+  simulation:
+    enabled: true
+  cds:
+    enabled: false
+  aiida:
+    enabled: true
+    customer:
+      # Set your own customer identifier for the AIIDA integration.
+      id: "eddie"
+    bcrypt:
+      strength: 14
+    mqtt:
+      server:
+        # Empty uses the internal broker Service. For remote AIIDA clients set a
+        # reachable tcp:// or ssl:// URI. EDDIE also connects to this same URI.
+        uri: ""
+      # Shared bootstrap account used by EDDIE and the selected broker.
+      username: "eddie"
+      password: "CHANGEME"
+  ponton:
+    enabled: false
+  esDatadis:
+    enabled: false
+  fiFingrid:
+    enabled: false
+  frEnedis:
+    enabled: false
+  nlMijnAansluiting:
+    enabled: false
+  usGreenButton:
+    enabled: false
+  dkEnerginet:
+    enabled: false
+  beFluvius:
+    enabled: false
+  deEta:
+    enabled: false
+  siMojElektro:
+    enabled: false
+
+networkPolicy:
+  enabled: false
+  # Additional allowed ingress, for example ingress-controller namespaces.
+  extraIngress: []
+  # Defaults allow outbound connector APIs; restrict explicitly for your network.
+  egress:
+    - {}
+
+strimziOperator:
+  # Set to true to install the Strimzi Cluster Operator as a Helm dependency
+  # into the same namespace as this release. Keep false when Strimzi is
+  # installed and managed separately.
+  enabled: false
+
+strimzi-kafka-operator:
+  # With both options left at their defaults, Strimzi watches the namespace
+  # where this Helm release is installed.
+  watchAnyNamespace: false
+  watchNamespaces: []
+  # Required when this release installs Strimzi itself. Set to false only when
+  # the Strimzi CRDs and ClusterRoles are already installed and managed outside
+  # this release.
+  createGlobalResources: true

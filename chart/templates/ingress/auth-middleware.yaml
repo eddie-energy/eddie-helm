@@ -1,0 +1,11 @@
+{{- if eq (include "eddie.auth.managed" .) "true" }}
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ include "eddie.management.basicAuthMiddlewareName" . }}
+  {{- include "eddie.core.labels" . | indent 2 }}
+spec:
+  basicAuth:
+    secret: {{ include "eddie.auth.secretName" . }}
+    realm: {{ default "EDDIE Management API" .Values.core.auth.realm | quote }}
+{{- end }}

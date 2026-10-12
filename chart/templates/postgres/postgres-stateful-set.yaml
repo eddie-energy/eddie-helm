@@ -1,0 +1,78 @@
+{{- $postgres := include "eddie.componentValues" (dict "root" . "component" "postgres") | fromYaml }}
+{{- if eq (toString $postgres.enabled) "true" }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Release.Name }}-postgres
+  {{- include "eddie.postgres.labels" . | indent 2 }}
+spec:
+  serviceName: {{ .Release.Name }}-postgres
+  replicas: {{ $postgres.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-postgres
+  template:
+    metadata:
+      annotations:
+        {{- with $postgres.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        checksum/secret: {{ include (print $.Template.BasePath "/postgres/postgres-secret.yaml") . | sha256sum }}
+    {{- include "eddie.postgres.labels" . | indent 6 }}
+    spec:
+      automountServiceAccountToken: false
+      {{- include "eddie.podScheduling" $postgres | nindent 6 }}
+      {{- with $postgres.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: postgres
+          image: "{{ $postgres.image }}:{{ $postgres.version }}"
+          imagePullPolicy: {{ $postgres.imagePullPolicy }}
+          ports:
+            - containerPort: 5432
+              name: postgres
+          {{- with $postgres.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- include "eddie.probes" $postgres | nindent 10 }}
+          resources:
+            {{- include "eddie.resources" $postgres.resources | nindent 12 }}
+          env:
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+            - name: POSTGRES_DB
+              value: {{ $postgres.database }}
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "eddie.postgres.secretName" . }}
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "eddie.postgres.secretName" . }}
+                  key: password
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data/pgdata
+              subPath: pgdata
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-data
+      spec:
+        {{- if ne $postgres.persistence.storageClass nil }}
+        storageClassName: {{ $postgres.persistence.storageClass | quote }}
+        {{- end }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ $postgres.persistence.size | default "1Gi" | quote }}
+          {{- if $postgres.persistence.storageLimit }}
+          limits:
+            storage: {{ $postgres.persistence.storageLimit | quote }}
+          {{- end }}
+
+{{- end }}

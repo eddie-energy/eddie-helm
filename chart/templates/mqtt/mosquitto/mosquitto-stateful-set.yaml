@@ -1,0 +1,102 @@
+{{- $mqtt := include "eddie.componentValues" (dict "root" . "component" "mqtt") | fromYaml }}
+{{- if eq (default "mosquitto" $mqtt.broker) "mosquitto" }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Release.Name }}-mosquitto
+  {{- include "eddie.mosquitto.labels" . | indent 2 }}
+spec:
+  serviceName: {{ include "eddie.mqtt.serviceName" . }}
+  replicas: {{ $mqtt.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-mosquitto
+  template:
+    metadata:
+      annotations:
+        {{- with $mqtt.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        checksum/config: {{ include (print $.Template.BasePath "/mqtt/mosquitto/mosquitto-configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/mqtt/mosquitto/mosquitto-secret.yaml") . | sha256sum }}
+      {{- include "eddie.mosquitto.labels" . | indent 6 }}
+    spec:
+      automountServiceAccountToken: false
+      {{- include "eddie.podScheduling" $mqtt | nindent 6 }}
+      {{- include "eddie.mqtt.imagePullSecrets" . | nindent 6 }}
+      {{- $podSecurityDefaults := dict
+        "fsGroup" 1883
+        "fsGroupChangePolicy" "OnRootMismatch"
+      }}
+      securityContext:
+        {{- toYaml (mergeOverwrite $podSecurityDefaults ($mqtt.podSecurityContext | default dict)) | nindent 8 }}
+      containers:
+        - name: mosquitto
+          image: "{{ $mqtt.mosquitto.image.repository }}:{{ $mqtt.versions.mosquitto }}"
+          imagePullPolicy: {{ $mqtt.mosquitto.image.pullPolicy }}
+          command:
+            - /bin/sh
+            - /config/start.sh
+          ports:
+            - name: mqtt
+              containerPort: 1883
+            {{- if eq (include "eddie.mqtt.externalTlsEnabled" .) "true" }}
+            - name: mqttssl
+              containerPort: 8883
+            {{- end }}
+          securityContext:
+            {{- include "eddie.mqtt.securityContext" . | nindent 12 }}
+          {{- include "eddie.mqtt.probes" $mqtt | nindent 10 }}
+          resources:
+            {{- include "eddie.resources" $mqtt.resources | nindent 12 }}
+          env:
+            - name: AIIDA_MQTT_USERNAME
+              value: {{ include "eddie.mqtt.localUsername" . | quote }}
+            - name: AIIDA_MQTT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "eddie.mqtt.secretName" . }}
+                  key: mqttPassword
+            - name: MOSQUITTO_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "eddie.mqtt.secretName" . }}
+                  key: dbPassword
+          volumeMounts:
+            - name: mosquitto-data
+              mountPath: /var/lib/mosquitto
+            - name: mosquitto-config
+              mountPath: /config
+            {{- include "eddie.postgres.sslRootCertMount" . | nindent 12 }}
+            {{- if eq (include "eddie.mqtt.externalTlsEnabled" .) "true" }}
+            - name: mqtt-tls
+              mountPath: /etc/mqtt-tls
+              readOnly: true
+            {{- end }}
+      volumes:
+        - name: mosquitto-config
+          configMap:
+            name: {{ .Release.Name }}-mosquitto-config
+            defaultMode: 0755
+        {{- include "eddie.postgres.sslRootCertVolume" . | nindent 8 }}
+        {{- if eq (include "eddie.mqtt.externalTlsEnabled" .) "true" }}
+        - name: mqtt-tls
+          secret:
+            secretName: {{ include "eddie.mqtt.externalTlsSecretName" . }}
+        {{- end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: mosquitto-data
+      spec:
+        {{- if ne $mqtt.persistence.storageClass nil }}
+        storageClassName: {{ $mqtt.persistence.storageClass | quote }}
+        {{- end }}
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ $mqtt.persistence.size | default "1Gi" | quote }}
+          {{- if $mqtt.persistence.storageLimit }}
+          limits:
+            storage: {{ $mqtt.persistence.storageLimit | quote }}
+          {{- end }}
+{{- end }}

@@ -1,0 +1,10 @@
+EDDIE {{ .Chart.AppVersion }} installed as {{ .Release.Name }}.
+
+{{- if eq (toString .Values.ingress.enabled) "true" }}
+Public URL: {{ include "eddie.publicUrl" . }}
+{{- else }}
+HTTP ingress is disabled. Use port forwarding or explicitly enable ingress.
+{{- end }}
+
+Strimzi must watch namespace {{ .Release.Namespace }}.
+Read the packaged README.md for credentials, persistence and external access.

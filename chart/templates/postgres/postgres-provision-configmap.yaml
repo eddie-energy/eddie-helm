@@ -1,0 +1,20 @@
+{{- if eq (toString .Values.mqtt.provisioning.enabled) "true" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "eddie.resourceName" (dict "root" . "suffix" "postgres-provision") }}
+  {{- include "eddie.postgres.labels" . | indent 2 }}
+data:
+  provision.sql: |
+    \set ON_ERROR_STOP on
+    \getenv mqtt_username MQTT_DB_USER
+    \getenv mqtt_password MQTT_DB_PASSWORD
+    -- Serialize role creation across concurrently starting core replicas.
+    SELECT pg_advisory_lock(hashtext('eddie-mqtt-role-provision'));
+    SELECT format('CREATE ROLE %I LOGIN', :'mqtt_username')
+    WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = :'mqtt_username')
+    \gexec
+    SELECT format('ALTER ROLE %I WITH LOGIN PASSWORD %L', :'mqtt_username', :'mqtt_password')
+    \gexec
+    SELECT pg_advisory_unlock(hashtext('eddie-mqtt-role-provision'));
+{{- end }}

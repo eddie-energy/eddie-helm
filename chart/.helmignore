@@ -1,0 +1,9 @@
+.git
+.gitignore
+.DS_Store
+*.local.yaml
+*.local.yml
+*.pem
+*.key
+*.p12
+*.jks

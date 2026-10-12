@@ -1,0 +1,25 @@
+{{- if eq (toString .Values.networkPolicy.enabled) "true" }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "eddie.resourceName" (dict "root" . "suffix" "workloads") }}
+  {{- include "eddie.core.labels" . | indent 2 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name | quote }}
+  policyTypes: ["Ingress", "Egress"]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: {{ .Release.Name | quote }}
+        - podSelector:
+            matchLabels:
+              strimzi.io/cluster: {{ include "eddie.kafka.strimzi.clusterName" . }}
+    {{- with .Values.networkPolicy.extraIngress }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  egress:
+    {{- toYaml .Values.networkPolicy.egress | nindent 4 }}
+{{- end }}

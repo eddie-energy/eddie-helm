@@ -1,0 +1,16 @@
+{{- $connectors := include "eddie.componentValues" (dict "root" . "component" "regionConnectors") | fromYaml }}
+{{ if eq (toString $connectors.ponton.enabled) "true" }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Release.Name }}-core-ponton-pvc
+  {{- include "eddie.core.labels" . | indent 2 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ $connectors.ponton.persistence.storage | quote }}
+    limits:
+      storage: {{ $connectors.ponton.persistence.storageLimit | quote }}
+{{ end }}

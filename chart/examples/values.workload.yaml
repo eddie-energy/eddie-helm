@@ -1,0 +1,40 @@
+# Optional overrides, not a sizing preset. Apply only the settings you need.
+# Merge with your private values file: -f values.local.yaml -f values.workload.yaml
+core:
+  podAnnotations:
+    example.com/config-revision: "1"
+  # An empty list/map adds no scheduling restriction. Populate for your cluster.
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+  # Example for a private registry: [{ name: ghcr-pull }]
+  imagePullSecrets: []
+  resources:
+    memory: { min: "512Mi", max: "2Gi" }
+
+postgres:
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+mqtt:
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+  # Merged over the selected broker's security defaults.
+  podSecurityContext: {}
+  securityContext: {}
+  # null = built-in defaults; {} = disabled; a nonempty object replaces the probe.
+  startupProbe: null
+  readinessProbe: null
+  livenessProbe: null
+  imagePullSecrets: []
+
+ingress:
+  # All HTTP ingresses inherit global.host unless this is nonempty.
+  host: ""
+  annotations: {}

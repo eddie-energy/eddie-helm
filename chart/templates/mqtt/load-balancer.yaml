@@ -1,0 +1,37 @@
+{{- if eq (toString .Values.mqtt.externalAccess.enabled) "true" }}
+{{- $broker := include "eddie.mqtt.broker" . }}
+{{- $plaintextEnabled := eq (toString (dig "plaintext" "enabled" false .Values.mqtt.externalAccess)) "true" }}
+{{- if not (or $plaintextEnabled (eq (include "eddie.mqtt.externalTlsEnabled" .) "true")) }}
+{{- fail "Public MQTT access requires TLS or an explicit mqtt.externalAccess.plaintext.enabled=true opt-in" }}
+{{- end }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-mqtt-lb
+  {{- with .Values.mqtt.loadBalancerAnnotation }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- include "eddie.mqtt.labels" . | indent 2 }}
+spec:
+  type: LoadBalancer
+  {{- $mqttExternalIP := default (include "eddie.externalIP" .) .Values.mqtt.externalIP }}
+  {{- if $mqttExternalIP }}
+  loadBalancerIP: {{ $mqttExternalIP | quote }}
+  {{- end }}
+  selector:
+    app: {{ .Release.Name }}-{{ $broker }}
+  ports:
+    {{- if $plaintextEnabled }}
+    - name: mqtt
+      port: {{ .Values.mqtt.ports.mqtt }}
+      protocol: TCP
+      targetPort: mqtt
+    {{- end }}
+    {{- if eq (include "eddie.mqtt.externalTlsEnabled" .) "true" }}
+    - name: mqttssl
+      port: {{ .Values.mqtt.ports.ssl }}
+      protocol: TCP
+      targetPort: mqttssl
+    {{- end }}
+{{- end }}

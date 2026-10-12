@@ -1,0 +1,16 @@
+# Public HTTP installation. Create the credential Secrets from README.md first.
+# Traefik, cert-manager and the named ClusterIssuer must already be installed.
+global:
+  host: eddie.example.com
+ingress:
+  enabled: true
+  tls:
+    enabled: true
+core:
+  existingSecret: eddie-core-credentials
+  auth:
+    existingSecret: eddie-management-auth
+postgres:
+  existingSecret: eddie-postgres-credentials
+mqtt:
+  existingSecret: eddie-mqtt-credentials

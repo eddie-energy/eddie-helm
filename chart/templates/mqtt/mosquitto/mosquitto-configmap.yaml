@@ -1,0 +1,79 @@
+{{- $mqtt := include "eddie.componentValues" (dict "root" . "component" "mqtt") | fromYaml }}
+{{- if eq (default "mosquitto" $mqtt.broker) "mosquitto" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-mosquitto-config
+  {{- include "eddie.mosquitto.labels" . | indent 2 }}
+data:
+  mosquitto.conf: |-
+    listener 1883 0.0.0.0
+    {{- if eq (include "eddie.mqtt.externalTlsEnabled" .) "true" }}
+    listener 8883 0.0.0.0
+    certfile /etc/mqtt-tls/tls.crt
+    keyfile /etc/mqtt-tls/tls.key
+    {{- end }}
+    allow_anonymous false
+    max_connections {{ $mqtt.mosquitto.maxConnections }}
+    max_queued_messages {{ $mqtt.mosquitto.maxQueuedMessages }}
+    max_queued_bytes {{ $mqtt.mosquitto.maxQueuedBytes }}
+
+    persistence true
+    persistence_location /var/lib/mosquitto/
+
+    auth_plugin /mosquitto/go-auth.so
+    auth_opt_backends files,postgres
+    auth_opt_exhaust_backend_first true
+    auth_opt_hasher bcrypt
+    auth_opt_cache {{ $mqtt.cache.enabled }}
+    auth_opt_cache_reset {{ $mqtt.cache.reset }}
+    auth_opt_cache_refresh {{ $mqtt.cache.refresh }}
+    auth_opt_auth_cache_seconds {{ $mqtt.cache.authSeconds }}
+    auth_opt_acl_cache_seconds {{ $mqtt.cache.aclSeconds }}
+    auth_opt_auth_jitter_seconds {{ $mqtt.cache.authJitterSeconds }}
+    auth_opt_acl_jitter_seconds {{ $mqtt.cache.aclJitterSeconds }}
+    auth_opt_log_level info
+
+    auth_opt_files_password_path /tmp/mosquitto-passwords
+    auth_opt_files_acl_path /tmp/mosquitto-acls
+
+    auth_opt_pg_host {{ include "eddie.postgres.host" . }}
+    auth_opt_pg_port {{ .Values.postgres.port }}
+    auth_opt_pg_user {{ $mqtt.db.username | default "emqx" }}
+    auth_opt_pg_password REPLACED_WITH_ENV
+    auth_opt_pg_dbname {{ .Values.postgres.database }}
+    auth_opt_pg_sslmode {{ include "eddie.postgres.sslMode" . }}
+    {{- if include "eddie.postgres.sslRootCertPath" . }}
+    auth_opt_pg_sslrootcert {{ include "eddie.postgres.sslRootCertPath" . }}
+    {{- end }}
+    auth_opt_pg_userquery {{ $mqtt.mosquitto.queries.password }}
+    auth_opt_pg_superquery {{ $mqtt.mosquitto.queries.superuser }}
+    auth_opt_pg_aclquery {{ $mqtt.mosquitto.queries.acl }}
+  start.sh: |-
+    #!/bin/sh
+    set -eu
+
+    if [ -z "${MOSQUITTO_DB_PASSWORD:-}" ]; then
+      echo "Error: MOSQUITTO_DB_PASSWORD environment variable is not set."
+      exit 1
+    fi
+
+    if [ -z "${AIIDA_MQTT_PASSWORD:-}" ]; then
+      echo "Error: AIIDA_MQTT_PASSWORD environment variable is not set."
+      exit 1
+    fi
+
+    # ENVIRON avoids treating password characters as shell or sed expressions.
+    awk '/^auth_opt_pg_password / { print "auth_opt_pg_password " ENVIRON["MOSQUITTO_DB_PASSWORD"]; next } { print }' \
+      /config/mosquitto.conf > /tmp/mosquitto.conf
+
+    /mosquitto/pw -h bcrypt -p "${AIIDA_MQTT_PASSWORD}" > /tmp/mosquitto-password-hash
+    {
+      printf '%s:' "${AIIDA_MQTT_USERNAME}"
+      cat /tmp/mosquitto-password-hash
+    } > /tmp/mosquitto-passwords
+
+    printf 'user %s\ntopic readwrite #\n' "${AIIDA_MQTT_USERNAME}" > /tmp/mosquitto-acls
+
+    exec /usr/sbin/mosquitto -c /tmp/mosquitto.conf
+{{- end }}

@@ -1,0 +1,16 @@
+# Merge over your installation values. Adjust selectors to match your controller.
+networkPolicy:
+  enabled: true
+  extraIngress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 9090
+  # Region connectors call external APIs. Supply narrower rules for your network.
+  egress:
+    - {}
