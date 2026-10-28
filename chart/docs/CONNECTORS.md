@@ -155,6 +155,26 @@ regionConnectors:
         caCertificate: ""
 ```
 
+### Conversation routing
+
+Set the optional `regionConnectors.ponton.conversationIdPrefix` when several adapters share one eligible party and Messenger routes responses by conversation ID:
+
+```yaml
+core:
+  version: "v1.52.4"
+regionConnectors:
+  ponton:
+    enabled: true
+    eligiblePartyId: "EP123456"
+    conversationIdPrefix: "D4G"
+```
+
+The chart passes a nonempty prefix as `REGION_CONNECTOR_AT_EDA_CONVERSATION_ID_PREFIX` only when the Ponton connector is enabled. The default is an empty string. Omitting the setting or keeping it empty emits no prefix environment variable and preserves the application's default ID generation. Prefixes may contain only ASCII letters and digits. EDDIE validates the complete generated ID against the EDA length limit.
+
+Use an EDDIE image that supports `region-connector.at.eda.conversation-id.prefix`, such as `v1.51.4` or `v1.52.4`. The chart's default image remains `v1.43.0` and does not support this property. Configure the corresponding Messenger routing rule separately. See the [Austrian connector documentation](https://architecture.eddie.energy/framework/1-running/region-connectors/region-connector-at-eda.html).
+
+### TLS trust
+
 Configure the eligible party identifier, adapter identifier, and credentials for the XP messenger deployment. An empty `caCertificate` selects the bundled Ponton XP Root CA. For another CA, set the PEM certificate directly:
 
 ```yaml

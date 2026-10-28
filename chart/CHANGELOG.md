@@ -1,5 +1,11 @@
 # Change log
 
+## 1.1.0
+
+- Add optional `regionConnectors.ponton.conversationIdPrefix` for routing conversations between adapters that share an eligible party.
+- Leave the prefix empty by default and emit its environment variable only for an enabled Ponton connector with a nonempty prefix.
+- Validate prefix characters and document the application version requirement. The default EDDIE image remains unchanged.
+
 ## 1.0.0
 
 Initial release of the EDDIE Helm chart.
