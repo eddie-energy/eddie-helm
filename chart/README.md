@@ -8,7 +8,7 @@ FlexiData GmbH developed this chart as a separate project from the [EDDIE framew
 
 | Component | Chart default or requirement |
 | --- | --- |
-| Chart | `1.0.0` |
+| Chart | `1.1.0` |
 | EDDIE core | `v1.43.0` |
 | Kubernetes | `1.30` or later |
 | Strimzi operator | Locked dependency `1.1.0`, or a compatible separately installed operator |
@@ -135,10 +135,10 @@ Use the complete registry reference announced for the selected release. Replace 
 
 ```sh
 CHART_REF="oci://<registry>/<namespace>/eddie"
-helm show chart "$CHART_REF" --version 1.0.0
-helm template eddie "$CHART_REF" --version 1.0.0 \
+helm show chart "$CHART_REF" --version 1.1.0
+helm template eddie "$CHART_REF" --version 1.1.0 \
   -n eddie -f values.local.yaml > rendered.local.yaml
-helm upgrade --install eddie "$CHART_REF" --version 1.0.0 \
+helm upgrade --install eddie "$CHART_REF" --version 1.1.0 \
   --namespace eddie -f values.local.yaml --wait --timeout 10m
 ```
 

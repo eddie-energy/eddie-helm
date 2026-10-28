@@ -4,3 +4,4 @@
 *.local.yml
 /dist/
 /chart/charts/
+__pycache__/

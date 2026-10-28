@@ -561,6 +561,7 @@
           "properties": {
             "enabled": { "$ref": "#/definitions/boolean" },
             "eligiblePartyId": { "type": "string" },
+            "conversationIdPrefix": { "type": "string", "pattern": "^[A-Za-z0-9]*$" },
             "retry": { "type": "string" },
             "adapter": {
               "type": "object",

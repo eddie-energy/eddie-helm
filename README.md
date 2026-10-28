@@ -4,7 +4,7 @@ This chart deploys [EDDIE](https://architecture.eddie.energy/architecture/), the
 
 FlexiData GmbH developed this chart. The chart is a separate project from the [upstream EDDIE framework](https://github.com/eddie-energy/eddie).
 
-**Current chart version: <!-- CHART_VERSION_START -->`1.0.0`<!-- CHART_VERSION_END -->.**
+**Current chart version: <!-- CHART_VERSION_START -->`1.1.0`<!-- CHART_VERSION_END -->.**
 
 [The chart guide](chart/README.md) is the authoritative installation and configuration documentation. It includes an installation using existing Secrets, public access, storage, network policies, workload controls, and verification commands. Start there and create a small private values file.
 

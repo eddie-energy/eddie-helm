@@ -129,6 +129,8 @@ regionConnectors:
     polling: "0 0 17 * * *"
   ponton:
     eligiblePartyId: "CHANGEME"
+    # Optional prefix for generated EDA conversation IDs. Empty preserves the application default.
+    conversationIdPrefix: ""
     retry: "0 0 */1 * * *"
     adapter:
       id: "CHANGEME"

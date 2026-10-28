@@ -12,6 +12,10 @@
   value: {{ $edaValues.eligiblePartyId | quote }}
 - name: {{ $rcPrefix }}_RETRY
   value: {{ $edaValues.retry | quote }}
+{{- if $edaValues.conversationIdPrefix }}
+- name: {{ $rcPrefix }}_CONVERSATION_ID_PREFIX
+  value: {{ $edaValues.conversationIdPrefix | quote }}
+{{- end }}
 - name: {{ $pontonPrefix }}_ADAPTER_ID
   value: {{ $pontonValues.adapter.id | quote }}
 - name: {{ $pontonPrefix }}_ADAPTER_VERSION
