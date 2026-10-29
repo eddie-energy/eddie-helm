@@ -14,9 +14,11 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/instance: {{ .Release.Name | quote }}
+        {{- if ne (include "eddie.kafka.externalEnabled" .) "true" }}
         - podSelector:
             matchLabels:
               strimzi.io/cluster: {{ include "eddie.kafka.strimzi.clusterName" . }}
+        {{- end }}
     {{- with .Values.networkPolicy.extraIngress }}
     {{- toYaml . | nindent 4 }}
     {{- end }}

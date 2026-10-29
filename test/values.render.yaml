@@ -1,0 +1,12 @@
+# Test-only credentials for offline rendering. Never use this fixture to deploy.
+core:
+  jwtHmacSecret: "0123456789abcdef0123456789abcdef"
+postgres:
+  password: test-only-postgres-password
+mqtt:
+  db:
+    password: test-only-broker-password
+regionConnectors:
+  aiida:
+    mqtt:
+      password: test-only-mqtt-password

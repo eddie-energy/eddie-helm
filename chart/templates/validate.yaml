@@ -3,6 +3,7 @@
 {{- $postgres := .Values.postgres -}}
 {{- $mqtt := .Values.mqtt -}}
 {{- $kafka := include "eddie.componentValues" (dict "root" . "component" "kafka") | fromYaml -}}
+{{- $externalKafka := eq (include "eddie.kafka.externalEnabled" .) "true" -}}
 {{- $ingress := .Values.ingress -}}
 {{- $admin := .Values.outboundConnectors.adminConsole -}}
 {{- $amqp := .Values.outboundConnectors.amqp -}}
@@ -31,7 +32,7 @@
     {{- fail "Service ports must be between 1 and 65535." -}}
   {{- end -}}
 {{- end -}}
-{{- if and (eq (toString $kafka.externalAccess.enabled) "true") (ne (int $kafka.replicaCount) 1) -}}
+{{- if and (not $externalKafka) (eq (toString $kafka.externalAccess.enabled) "true") (ne (int $kafka.replicaCount) 1) -}}
   {{- fail "External Kafka access currently supports kafka.replicaCount=1 only; use internal access for multiple brokers." -}}
 {{- end -}}
 {{- if eq (toString $postgres.enabled) "false" -}}
@@ -88,6 +89,7 @@
   {{- end -}}
 {{- end -}}
 {{/* Kafka replication settings must fit the configured broker count. */}}
+{{- if not $externalKafka -}}
 {{- range $factor := list
   $kafka.strimzi.defaultReplicationFactor
   $kafka.strimzi.offsetsTopicReplicationFactor
@@ -102,5 +104,54 @@
 {{- range $kafka.topics -}}
   {{- if or (lt (int .partitions) 1) (lt (int .replicationFactor) 1) (gt (int .replicationFactor) (int $kafka.replicaCount)) -}}
     {{- fail "Kafka topics need positive partitions and replicationFactor <= kafka.replicaCount." -}}
+  {{- end -}}
+{{- end -}}
+{{- else -}}
+  {{- if eq (toString .Values.strimziOperator.enabled) "true" -}}
+    {{- fail "strimziOperator.enabled must be false when kafka.external.enabled=true; manage an external operator independently." -}}
+  {{- end -}}
+  {{- if eq (toString $kafka.externalAccess.enabled) "true" -}}
+    {{- fail "kafka.externalAccess exposes the bundled cluster and cannot be enabled with kafka.external.enabled=true." -}}
+  {{- end -}}
+  {{- if eq (toString .Values.outboundConnectors.kafka.enabled) "true" -}}
+    {{- $external := $kafka.external -}}
+    {{- $endpoint := "(\\[[0-9A-Fa-f:]+\\]|[^[:space:],:/\\[\\]]+):[0-9]+" -}}
+    {{- if not (regexMatch (printf "^%s(,%s)*$" $endpoint $endpoint) $external.bootstrapServers) -}}
+      {{- fail "kafka.external.bootstrapServers must be a comma-separated host:port list when kafka.external.enabled=true." -}}
+    {{- end -}}
+    {{- range $server := splitList "," $external.bootstrapServers -}}
+      {{- $port := int (last (splitList ":" $server)) -}}
+      {{- if or (lt $port 1) (gt $port 65535) -}}
+        {{- fail "kafka.external.bootstrapServers ports must be between 1 and 65535." -}}
+      {{- end -}}
+    {{- end -}}
+    {{- if hasPrefix "SASL_" $external.securityProtocol -}}
+      {{- $_ := required "kafka.external.sasl.existingSecret is required for SASL authentication and must contain the complete JAAS configuration." $external.sasl.existingSecret -}}
+    {{- end -}}
+    {{- if and $external.tls.existingSecret (not (hasSuffix "SSL" $external.securityProtocol)) -}}
+      {{- fail "kafka.external.tls.existingSecret requires securityProtocol SSL or SASL_SSL." -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{/* New external mode rejects conflicts. Preserve the 1.x property override path for bundled Kafka. */}}
+{{- if and $externalKafka (eq (toString .Values.outboundConnectors.kafka.enabled) "true") -}}
+  {{- $names := dict -}}
+  {{- range $name := list "KAFKA_USER" "KAFKA_PASSWORD" "KAFKA_BOOTSTRAP_SERVERS" "KAFKA_SECURITY_PROTOCOL" "KAFKA_SASL_MECHANISM" "KAFKA_SASL_JAAS_CONFIG" -}}
+    {{- $_ := set $names $name true -}}
+  {{- end -}}
+  {{- if $kafka.external.tls.existingSecret -}}
+    {{- $_ := set $names "KAFKA_SSL_TRUSTSTORE_TYPE" true -}}
+    {{- $_ := set $names "KAFKA_SSL_TRUSTSTORE_CERTIFICATES" true -}}
+  {{- end -}}
+  {{- $maps := list .Values.outboundConnectors.kafka.properties $kafka.external.propertiesFromSecret -}}
+  {{- range $properties := $maps -}}
+    {{- range $name, $_ := $properties -}}
+      {{- $envName := include "eddie.kafka.propertyEnvName" $name -}}
+      {{- if hasKey $names $envName -}}
+        {{- fail (printf "Kafka property %s duplicates a connection setting or another property (%s). Use kafka.external connection settings and unique property names." $name $envName) -}}
+      {{- end -}}
+      {{- $_ := set $names $envName true -}}
+    {{- end -}}
   {{- end -}}
 {{- end -}}

@@ -6,5 +6,10 @@ Public URL: {{ include "eddie.publicUrl" . }}
 HTTP ingress is disabled. Use port forwarding or explicitly enable ingress.
 {{- end }}
 
+{{- if ne (include "eddie.kafka.externalEnabled" .) "true" }}
 Strimzi must watch namespace {{ .Release.Namespace }}.
+{{- else if eq (toString .Values.outboundConnectors.kafka.enabled) "true" }}
+Existing Kafka: {{ .Values.kafka.external.bootstrapServers }}.
+Prepare topics, ACLs and credential Secrets using docs/KAFKA.md before starting core.
+{{- end }}
 Read the packaged README.md for credentials, persistence and external access.

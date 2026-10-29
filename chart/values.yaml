@@ -139,6 +139,24 @@ mqtt:
     hivemq: "sha-78a19bd"
 
 kafka:
+  external:
+    # Explicitly replace the bundled cluster. Existing 1.x values keep bundled Kafka.
+    enabled: false
+    # Used only when external.enabled=true. All advertised brokers must be reachable.
+    bootstrapServers: ""
+    securityProtocol: "SASL_SSL"
+    sasl:
+      mechanism: "SCRAM-SHA-512"
+      # Complete JAAS configuration, including login module, username and password.
+      existingSecret: ""
+      jaasConfigKey: "sasl.jaas.config"
+    tls:
+      # Optional PEM CA bundle. Empty uses the JVM's trusted public CAs.
+      existingSecret: ""
+      caCertificateKey: "ca.crt"
+    # Additional sensitive Kafka properties, including PEM client certificates.
+    # Maps Kafka property names to {name: <Secret>, key: <Secret key>}.
+    propertiesFromSecret: {}
   replicaCount: 1
   autocreateTopics: true
   persistence:

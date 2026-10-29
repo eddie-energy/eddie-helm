@@ -2,13 +2,15 @@
 
 This chart deploys EDDIE core, a bundled PostgreSQL database, Kafka resources managed through Strimzi, and one MQTT broker. Mosquitto is the default broker. HiveMQ is an optional integration whose default EDDIE authentication extension image currently requires registry access.
 
+To use an existing Kafka cluster, set `kafka.external.enabled: true` and configure its connection settings. Existing values retain bundled Kafka and property overrides. The presence of the block or an endpoint alone does not select external Kafka. Follow the [external Kafka guide](docs/KAFKA.md) and [example values](examples/values.kafka-external.yaml).
+
 FlexiData GmbH developed this chart as a separate project from the [EDDIE framework](https://github.com/eddie-energy/eddie). Read the [EDDIE Framework operation manual](https://architecture.eddie.energy/framework/1-running/OPERATION.html) for product concepts, external registrations, and application integration.
 
 ## Versions and deployment scope
 
 | Component | Chart default or requirement |
 | --- | --- |
-| Chart | `1.1.0` |
+| Chart | `1.2.0` |
 | EDDIE core | `v1.43.0` |
 | Kubernetes | `1.30` or later |
 | Strimzi operator | Locked dependency `1.1.0`, or a compatible separately installed operator |
@@ -40,6 +42,8 @@ kubectl create namespace eddie --dry-run=client -o yaml | kubectl apply -f -
 A default StorageClass is sufficient. Set the PostgreSQL, MQTT, and Kafka storage classes explicitly when the cluster has no suitable default.
 
 ### 2. Select the Strimzi operator
+
+For existing Kafka, skip this step, keep `strimziOperator.enabled: false`, and follow [Kafka preparation](docs/KAFKA.md).
 
 A Strimzi operator must watch the `eddie` namespace. If a compatible operator is already present, leave `strimziOperator.enabled: false`.
 
@@ -223,6 +227,8 @@ EDDIE distributes the configured MQTT server URI to external AIIDA clients and a
 Plain MQTT remains available inside the cluster on port 1883. Setting `mqtt.externalAccess.plaintext.enabled: true` additionally exposes the plain listener through the public LoadBalancer. Credentials and data then travel without transport encryption.
 
 ### Kafka
+
+The settings below expose bundled Kafka. To connect EDDIE to an existing cluster, use [kafka.external](docs/KAFKA.md). With external Kafka, omit the Strimzi readiness commands in the installation steps and use the verification in that guide.
 
 Set `kafka.externalAccess.enabled: true` to expose the external SASL/TLS listener. The advertised hostname resolves from `kafka.externalAccess.host`, then `ingress.host`, then `global.host`. DNS and LoadBalancer reachability must match that hostname.
 
