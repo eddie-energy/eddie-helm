@@ -1,5 +1,11 @@
 # Change log
 
+## 1.2.0
+
+Add existing Kafka support through the explicit `kafka.external.enabled: true` setting. Existing values retain bundled Kafka and property overrides. External connections support TLS, SCRAM, PLAIN and sensitive properties from existing Secrets. Document topic names, ACLs, fixed consumer groups, message limits and migration requirements.
+
+Validate conflicting settings in external mode and skip bundled replication checks there. A block or endpoint alone never changes cluster ownership. Switching an existing installation requires a planned data and offset migration.
+
 ## 1.1.0
 
 - Add optional `regionConnectors.ponton.conversationIdPrefix` for routing conversations between adapters that share an eligible party.

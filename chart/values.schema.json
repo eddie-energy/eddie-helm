@@ -128,6 +128,45 @@
     "kafka": {
       "type": "object",
       "properties": {
+        "external": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "$ref": "#/definitions/boolean" },
+            "bootstrapServers": { "type": "string" },
+            "securityProtocol": { "type": "string", "enum": ["PLAINTEXT", "SSL", "SASL_PLAINTEXT", "SASL_SSL"] },
+            "sasl": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "mechanism": { "type": "string", "enum": ["SCRAM-SHA-512", "SCRAM-SHA-256", "PLAIN"] },
+                "existingSecret": { "type": "string" },
+                "jaasConfigKey": { "type": "string", "minLength": 1 }
+              }
+            },
+            "tls": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "existingSecret": { "type": "string" },
+                "caCertificateKey": { "type": "string", "minLength": 1 }
+              }
+            },
+            "propertiesFromSecret": {
+              "type": "object",
+              "propertyNames": { "pattern": "^[a-zA-Z][a-zA-Z0-9_.-]*$" },
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["name", "key"],
+                "properties": {
+                  "name": { "type": "string", "minLength": 1 },
+                  "key": { "type": "string", "minLength": 1 }
+                }
+              }
+            }
+          }
+        },
         "replicaCount": {
           "oneOf": [
             { "type": "integer", "minimum": 1 },

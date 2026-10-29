@@ -1,4 +1,5 @@
 {{- $kafka := include "eddie.componentValues" (dict "root" . "component" "kafka") | fromYaml }}
+{{- if ne (include "eddie.kafka.externalEnabled" .) "true" }}
 {{- $clusterName := include "eddie.kafka.strimzi.clusterName" . }}
 {{- $adminUserName := include "eddie.kafka.adminUserName" . }}
 {{- $coreUserName := include "eddie.kafka.coreUserName" . }}
@@ -197,4 +198,5 @@ spec:
   partitions: {{ .partitions }}
   replicas: {{ .replicationFactor }}
 ---
+{{- end }}
 {{- end }}

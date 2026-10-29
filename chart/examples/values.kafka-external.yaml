@@ -1,0 +1,20 @@
+# Combine with values.internal.yaml or your existing application values.
+# Prepare the Kafka cluster and Secrets using docs/KAFKA.md first.
+strimziOperator:
+  enabled: false
+kafka:
+  external:
+    enabled: true
+    bootstrapServers: "kafka-1.example.com:9093,kafka-2.example.com:9093"
+    securityProtocol: "SASL_SSL"
+    sasl:
+      mechanism: "SCRAM-SHA-512"
+      existingSecret: "eddie-kafka-client"
+      jaasConfigKey: "sasl.jaas.config"
+    tls:
+      # Omit for a broker certificate signed by a CA already trusted by Java.
+      existingSecret: "eddie-kafka-ca"
+      caCertificateKey: "ca.crt"
+global:
+  # Choose an ID unique to this EDDIE installation on the shared Kafka cluster.
+  eddieId: "my-eddie"

@@ -50,6 +50,7 @@
 
 {{- define "eddie.outbound-connectors.kafka.envs" }}
 {{- $kafkaValues := .Values.outboundConnectors.kafka }}
+{{- $external := .Values.kafka.external }}
 - name: OUTBOUND_CONNECTOR_KAFKA_ENABLED
   value: {{ $kafkaValues.enabled | quote }}
 {{- if eq (toString $kafkaValues.enabled) "true" }}
@@ -57,6 +58,7 @@
   value: {{ $kafkaValues.format | quote }}
 - name: OUTBOUND_CONNECTOR_KAFKA_EDDIE_ID
   value: {{ default (include "eddie.eddieId" .) $kafkaValues.eddieId | quote }}
+{{- if ne (include "eddie.kafka.externalEnabled" .) "true" }}
 - name: KAFKA_USER
   value: {{ include "eddie.kafka.coreUserName" . | quote }}
 - name: KAFKA_PASSWORD
@@ -72,8 +74,39 @@
   value: "SCRAM-SHA-512"
 - name: KAFKA_SASL_JAAS_CONFIG
   value: "org.apache.kafka.common.security.scram.ScramLoginModule required username='$(KAFKA_USER)' password='$(KAFKA_PASSWORD)';"
+{{- else }}
+- name: KAFKA_BOOTSTRAP_SERVERS
+  value: {{ $external.bootstrapServers | quote }}
+- name: KAFKA_SECURITY_PROTOCOL
+  value: {{ $external.securityProtocol | quote }}
+{{- if hasPrefix "SASL_" $external.securityProtocol }}
+- name: KAFKA_SASL_MECHANISM
+  value: {{ $external.sasl.mechanism | quote }}
+- name: KAFKA_SASL_JAAS_CONFIG
+  valueFrom:
+    secretKeyRef:
+      name: {{ $external.sasl.existingSecret | quote }}
+      key: {{ $external.sasl.jaasConfigKey | quote }}
+{{- end }}
+{{- if $external.tls.existingSecret }}
+- name: KAFKA_SSL_TRUSTSTORE_TYPE
+  value: "PEM"
+- name: KAFKA_SSL_TRUSTSTORE_CERTIFICATES
+  valueFrom:
+    secretKeyRef:
+      name: {{ $external.tls.existingSecret | quote }}
+      key: {{ $external.tls.caCertificateKey | quote }}
+{{- end }}
+{{- range $name, $ref := $external.propertiesFromSecret }}
+- name: {{ include "eddie.kafka.propertyEnvName" $name }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $ref.name | quote }}
+      key: {{ $ref.key | quote }}
+{{- end }}
+{{- end }}
 {{- range $name, $value := $kafkaValues.properties }}
-- name: {{ printf "KAFKA_%s" (regexReplaceAll "[^A-Za-z0-9]" $name "_" | upper) }}
+- name: {{ include "eddie.kafka.propertyEnvName" $name }}
   value: {{ $value | quote }}
 {{- end }}
 {{- end }}

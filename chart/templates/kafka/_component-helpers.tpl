@@ -1,4 +1,11 @@
 {{/* kafka component helpers. */}}
+{{/* Select external Kafka only through an explicit opt in, never a map or endpoint's presence. */}}
+{{- define "eddie.kafka.externalEnabled" -}}
+{{- eq (toString (get (.Values.kafka.external | default dict) "enabled")) "true" -}}
+{{- end -}}
+{{- define "eddie.kafka.propertyEnvName" -}}
+{{- printf "KAFKA_%s" (regexReplaceAll "[^A-Za-z0-9]" . "_" | upper) -}}
+{{- end -}}
 {{- define "eddie.kafka.labels" }}
 labels:
   app: {{ .Release.Name }}-kafka

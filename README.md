@@ -2,9 +2,11 @@
 
 This chart deploys [EDDIE](https://architecture.eddie.energy/architecture/), the European Distributed Data Infrastructure for Energy, on Kubernetes. It includes EDDIE core, PostgreSQL, Kafka managed through Strimzi, and a choice of Mosquitto or HiveMQ for MQTT.
 
+An [existing Kafka cluster](chart/docs/KAFKA.md) can replace the bundled Kafka resources through `kafka.external.enabled: true`. Existing values keep the bundled Kafka behaviour. The guide covers credentials, TLS, topics, ACLs and broker prerequisites.
+
 FlexiData GmbH developed this chart. The chart is a separate project from the [upstream EDDIE framework](https://github.com/eddie-energy/eddie).
 
-**Current chart version: <!-- CHART_VERSION_START -->`1.1.0`<!-- CHART_VERSION_END -->.**
+**Current chart version: <!-- CHART_VERSION_START -->`1.2.0`<!-- CHART_VERSION_END -->.**
 
 [The chart guide](chart/README.md) is the authoritative installation and configuration documentation. It includes an installation using existing Secrets, public access, storage, network policies, workload controls, and verification commands. Start there and create a small private values file.
 
