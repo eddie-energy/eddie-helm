@@ -139,10 +139,10 @@ Use the complete registry reference announced for the selected release. Replace 
 
 ```sh
 CHART_REF="oci://<registry>/<namespace>/eddie"
-helm show chart "$CHART_REF" --version 1.1.0
-helm template eddie "$CHART_REF" --version 1.1.0 \
+helm show chart "$CHART_REF" --version 1.3.0
+helm template eddie "$CHART_REF" --version 1.3.0 \
   -n eddie -f values.local.yaml > rendered.local.yaml
-helm upgrade --install eddie "$CHART_REF" --version 1.1.0 \
+helm upgrade --install eddie "$CHART_REF" --version 1.3.0 \
   --namespace eddie -f values.local.yaml --wait --timeout 10m
 ```
 
