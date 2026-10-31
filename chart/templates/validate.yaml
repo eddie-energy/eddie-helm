@@ -17,6 +17,22 @@
   {{- fail "core.jwtHmacSecret must contain exactly 32 UTF-8 bytes, or supply core.existingSecret with a Base64-encoded 32-byte jwtHmacSecret." -}}
 {{- end -}}
 
+{{- if not $externalKafka -}}
+  {{- $listenerNames := dict "internal" true -}}
+  {{- $listenerPorts := dict "9094" true -}}
+  {{- if eq (toString $kafka.externalAccess.enabled) "true" -}}
+    {{- $_ := set $listenerNames "external" true -}}
+    {{- $_ := set $listenerPorts (toString $kafka.externalPort) true -}}
+  {{- end -}}
+  {{- range $kafka.strimzi.additionalListeners -}}
+    {{- if or (hasKey $listenerNames .name) (hasKey $listenerPorts (toString .port)) -}}
+      {{- fail "kafka.strimzi.additionalListeners requires unique listener names and ports, including the built in listeners." -}}
+    {{- end -}}
+    {{- $_ := set $listenerNames .name true -}}
+    {{- $_ := set $listenerPorts (toString .port) true -}}
+  {{- end -}}
+{{- end -}}
+
 {{/* Connection requirements and bounds. */}}
 {{- if and (eq (toString $amqp.enabled) "true") (not $core.existingSecret) -}}
   {{- $_ := required "outboundConnectors.amqp.uri is required when AMQP is enabled (or supply core.existingSecret with amqpUri)." $amqp.uri -}}
@@ -153,5 +169,19 @@
       {{- end -}}
       {{- $_ := set $names $envName true -}}
     {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{- $connectors := include "eddie.componentValues" (dict "root" . "component" "regionConnectors") | fromYaml -}}
+{{- if and (eq (toString $connectors.beFluvius.enabled) "true") (eq $connectors.beFluvius.oauth.authenticationMethod "certificate") (empty $connectors.beFluvius.tls.existingSecret) -}}
+  {{- fail "Fluvius certificate authentication requires beFluvius.tls.existingSecret and an application image supporting certificate authentication." -}}
+{{- end -}}
+{{- range $field := list "extraVolumes" "extraVolumeMounts" -}}
+  {{- $names := dict -}}
+  {{- range (get $core $field | default list) -}}
+    {{- if or (hasKey $names .name) (has .name (list "data-needs-volume" "aiida-mqtt-persistence" "ponton" "ponton-trust-source" "ponton-truststore" "postgres-provision" "postgres-root-cert" "fluvius-tls" "fingrid-keystore" "aansluiting-keystore")) -}}
+      {{- fail (printf "core.%s contains duplicate or reserved volume name %s" $field .name) -}}
+    {{- end -}}
+    {{- $_ := set $names .name true -}}
   {{- end -}}
 {{- end -}}

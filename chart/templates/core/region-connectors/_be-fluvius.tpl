@@ -40,11 +40,17 @@
       key: fluviusOAuthClientId
 - name: {{ $rcPrefix }}_OAUTH_TENANT_ID
   value: {{ $fluviusValues.oauth.tenantId | quote }}
+{{- if ne $fluviusValues.oauth.authenticationMethod "certificate" }}
 - name: {{ $rcPrefix }}_OAUTH_CLIENT_SECRET
   valueFrom:
     secretKeyRef:
       name: {{ include "eddie.connectors.secretName" . }}
       key: fluviusOAuthClientSecret
+{{- end }}
+{{- with $fluviusValues.oauth.authenticationMethod }}
+- name: {{ $rcPrefix }}_OAUTH_AUTHENTICATION_METHOD
+  value: {{ . | quote }}
+{{- end }}
 - name: {{ $rcPrefix }}_OAUTH_SCOPE
   value: {{ $fluviusValues.oauth.scope | quote }}
 - name: {{ $rcPrefix }}_SUBSCRIPTION_KEY

@@ -9,10 +9,10 @@
 {{- $fluviusTlsSecretName := $connectors.beFluvius.tls.existingSecret }}
 {{- $fluviusTlsEnabled := and (eq (toString $connectors.beFluvius.enabled) "true") $fluviusTlsSecretName }}
 {{- $postgresRootCertEnabled := not (empty (include "eddie.postgres.sslRootCertPath" .)) }}
-{{- $coreHasMounts := or $dataNeedsFromConfig $aiidaEnabled $pontonEnabled $fingridEnabled $mijnAansluitingEnabled $fluviusTlsEnabled $postgresRootCertEnabled }}
+{{- $coreHasMounts := or $dataNeedsFromConfig $aiidaEnabled $pontonEnabled $fingridEnabled $mijnAansluitingEnabled $fluviusTlsEnabled $postgresRootCertEnabled (not (empty $core.extraVolumeMounts)) }}
 {{- /* The SQL volume belongs to the provisioning init container, not the core container. */}}
 {{- $provisionMqttRole := eq (toString .Values.mqtt.provisioning.enabled) "true" }}
-{{- $podHasVolumes := or $coreHasMounts $provisionMqttRole }}
+{{- $podHasVolumes := or $coreHasMounts $provisionMqttRole (not (empty $core.extraVolumes)) }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -105,6 +105,9 @@ spec:
             {{- include "eddie.region-connectors.fi-fingrid.volumeMount" . | indent 12 }}
             {{- include "eddie.region-connectors.nl-mijn-aansluiting.volumeMount" . | indent 12 }}
             {{- include "eddie.region-connectors.be-fluvius.volumeMount" . | indent 12 }}
+            {{- with $core.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           {{- end }}
           ports:
             - containerPort: 8080
@@ -136,6 +139,10 @@ spec:
               value: {{ $core.logLevel | quote }}
             - name: EDDIE_DEMO_BUTTON_ENABLED
               value: {{ $core.demoButton | quote }}
+            {{- with $core.httpCodecsMaxInMemorySize }}
+            - name: SPRING_HTTP_CODECS_MAX_IN_MEMORY_SIZE
+              value: {{ . | quote }}
+            {{- end }}
             - name: SPRING_DATASOURCE_URL
               value: {{ include "eddie.postgres-url" . }}
             - name: SPRING_DATASOURCE_USERNAME
@@ -200,7 +207,7 @@ spec:
         {{- if $pontonEnabled }}
         - name: ponton
           persistentVolumeClaim:
-            claimName: {{ .Release.Name }}-core-ponton-pvc
+            claimName: {{ default (printf "%s-core-ponton-pvc" .Release.Name) $connectors.ponton.persistence.existingClaim }}
         {{- end }}
         {{- if $pontonTrustEnabled }}
         - name: ponton-trust-source
@@ -212,4 +219,7 @@ spec:
         {{- include "eddie.region-connectors.fi-fingrid.volume" . | indent 8 }}
         {{- include "eddie.region-connectors.nl-mijn-aansluiting.volume" . | indent 8 }}
         {{- include "eddie.region-connectors.be-fluvius.volume" . | indent 8 }}
+        {{- with $core.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
       {{- end }}

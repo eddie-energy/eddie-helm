@@ -121,7 +121,12 @@
             }
           }
         },
-        "persistence": { "$ref": "#/definitions/persistence" },
+        "persistence": {
+          "allOf": [
+            { "$ref": "#/definitions/persistence" },
+            { "properties": { "existingClaim": { "type": "string" } } }
+          ]
+        },
         "resources": { "$ref": "#/definitions/resources" }
       }
     },
@@ -254,6 +259,21 @@
           "properties": {
             "kafkaVersion": { "type": "string" },
             "metadataVersion": { "type": "string" },
+            "jvmOptions": { "type": "object" },
+            "additionalListeners": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["name", "port", "type", "tls"],
+                "properties": {
+                  "name": { "type": "string", "minLength": 1 },
+                  "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+                  "type": { "type": "string" },
+                  "tls": { "type": "boolean" }
+                }
+              }
+            },
+            "entityOperator": { "type": "object" },
             "storage": {
               "type": "object",
               "properties": {
@@ -286,6 +306,9 @@
       "type": "object",
       "properties": {
         "existingSecret": { "type": "string" },
+        "httpCodecsMaxInMemorySize": { "type": "string", "pattern": "^$|^[1-9][0-9]*(B|KB|MB|GB|TB)?$" },
+        "extraVolumes": { "type": "array", "items": { "type": "object", "required": ["name"] } },
+        "extraVolumeMounts": { "type": "array", "items": { "type": "object", "required": ["name", "mountPath"] } },
         "podAnnotations": {
           "type": "object",
           "properties": {}
@@ -630,6 +653,7 @@
             "persistence": {
               "type": "object",
               "properties": {
+                "existingClaim": { "type": "string" },
                 "storage": { "type": "string" },
                 "storageLimit": { "type": "string" }
               }
@@ -745,6 +769,7 @@
             "oauth": {
               "type": "object",
               "properties": {
+                "authenticationMethod": { "type": "string", "enum": ["", "certificate"] },
                 "tokenUrl": { "type": "string" },
                 "clientId": { "type": "string" },
                 "clientSecret": { "type": "string" },
@@ -914,6 +939,9 @@
                 "pullPolicy": { "type": "string" }
               }
             },
+            "allowLocalSysRead": { "$ref": "#/definitions/boolean" },
+            "queueQos0Messages": { "$ref": "#/definitions/boolean" },
+            "autosaveInterval": { "type": "integer", "minimum": 1 },
             "maxQueuedMessages": { "$ref": "#/definitions/integer" },
             "maxQueuedBytes": { "$ref": "#/definitions/integer" },
             "maxConnections": { "$ref": "#/definitions/integer" },

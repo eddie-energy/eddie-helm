@@ -14,12 +14,14 @@ data:
     keyfile /etc/mqtt-tls/tls.key
     {{- end }}
     allow_anonymous false
-    max_connections {{ $mqtt.mosquitto.maxConnections }}
-    max_queued_messages {{ $mqtt.mosquitto.maxQueuedMessages }}
-    max_queued_bytes {{ $mqtt.mosquitto.maxQueuedBytes }}
+    max_connections {{ int64 $mqtt.mosquitto.maxConnections }}
+    max_queued_messages {{ int64 $mqtt.mosquitto.maxQueuedMessages }}
+    max_queued_bytes {{ int64 $mqtt.mosquitto.maxQueuedBytes }}
+    queue_qos0_messages {{ $mqtt.mosquitto.queueQos0Messages }}
 
     persistence true
     persistence_location /var/lib/mosquitto/
+    autosave_interval {{ int64 $mqtt.mosquitto.autosaveInterval }}
 
     auth_plugin /mosquitto/go-auth.so
     auth_opt_backends files,postgres
@@ -74,6 +76,9 @@ data:
     } > /tmp/mosquitto-passwords
 
     printf 'user %s\ntopic readwrite #\n' "${AIIDA_MQTT_USERNAME}" > /tmp/mosquitto-acls
+    {{- if eq (toString $mqtt.mosquitto.allowLocalSysRead) "true" }}
+    printf 'topic read $SYS/#\n' >> /tmp/mosquitto-acls
+    {{- end }}
 
     exec /usr/sbin/mosquitto -c /tmp/mosquitto.conf
 {{- end }}

@@ -10,7 +10,7 @@ FlexiData GmbH developed this chart as a separate project from the [EDDIE framew
 
 | Component | Chart default or requirement |
 | --- | --- |
-| Chart | `1.2.0` |
+| Chart | `1.3.0` |
 | EDDIE core | `v1.43.0` |
 | Kubernetes | `1.30` or later |
 | Strimzi operator | Locked dependency `1.1.0`, or a compatible separately installed operator |
@@ -363,6 +363,50 @@ Core runs as user and group 1000 by default, with `runAsNonRoot: true`. AIIDA MQ
 Core and PostgreSQL expose startup, readiness, and liveness probe objects. A configured probe replaces the complete default probe. An empty map disables it. MQTT additionally uses `null` to select its broker defaults. TCP probes check listener availability. Use an application health endpoint when it represents the required readiness condition.
 
 See [the workload example](examples/values.workload.yaml) for override shapes. Mosquitto uses `mqtt.mosquitto.image.repository` and `pullPolicy`, with its tag under `mqtt.versions.mosquitto`. HiveMQ uses the equivalent `mqtt.hivemq.image` settings and `mqtt.versions.hivemq`. [The connector guide](docs/CONNECTORS.md#mqtt-brokers) describes the HiveMQ image dependency.
+
+## Migration and application compatibility
+
+The optional settings below support a separately planned migration. They do not
+copy broker records, consumer offsets, database contents, retained MQTT messages
+or persistent client sessions. Review application compatibility and rehearse the
+data transfer and rollback before changing an existing deployment.
+
+* `postgres.persistence.existingClaim` mounts an existing claim and omits the
+  generated claim template. The claim must use the expected `pgdata` directory
+  layout and compatible PostgreSQL data. Changing an existing StatefulSet from a
+  claim template to this mode requires a deliberate controller handover because
+  claim templates are immutable. Never run two database writers against a claim.
+* `regionConnectors.ponton.persistence.existingClaim` references a claim in the
+  release namespace and suppresses the generated Ponton PVC. Transfer ownership
+  and protect the existing claim before upgrading. Helm may otherwise remove a
+  formerly managed PVC that disappears from the rendered resources.
+* `core.extraVolumes` and `core.extraVolumeMounts` append Kubernetes volume and
+  mount definitions. Built in names are reserved. The operator must provide the
+  referenced resources, compatible files and any required restart annotation.
+* `core.httpCodecsMaxInMemorySize` emits
+  `SPRING_HTTP_CODECS_MAX_IN_MEMORY_SIZE` only when nonempty, for example `20MB`.
+  This setting targets compatible Spring Boot 4 applications. The default core
+  image is unchanged and does not gain application support from this option.
+* `kafka.strimzi.jvmOptions`, `additionalListeners` and `entityOperator` pass
+  Strimzi settings to the Kafka resource. Additional listeners need unique names
+  and ports. Configure their certificates, ACLs, advertised addresses and routes
+  separately. Heap and operator resources must fit the measured workload.
+* `mqtt.mosquitto.queueQos0Messages` defaults to `false` and
+  `autosaveInterval` defaults to `1800` seconds. Queue limits always render as
+  decimal integers. Queuing QoS 0 increases storage and memory use and does not
+  provide a delivery guarantee. Tune limits against the actual offline workload.
+* `mqtt.mosquitto.allowLocalSysRead` defaults to `false`. Enabling it permits
+  only the chart's local core account to read `$SYS/#` through the file backend.
+  Database account ACLs remain controlled by the configured SQL queries.
+* `regionConnectors.beFluvius.oauth.authenticationMethod: certificate` requires
+  a separately supplied application image implementing that authentication mode
+  and `regionConnectors.beFluvius.tls.existingSecret`. It omits the client secret
+  environment variable and generated Secret key. An empty value preserves the
+  existing client secret configuration. The default EDDIE image does not acquire
+  certificate authentication from this chart option.
+
+See [the migration options example](examples/values.migration-options.yaml) for
+configuration shapes. These are opt in settings, not a complete migration plan.
 
 ## Network policies
 

@@ -25,6 +25,8 @@ core:
   image: "ghcr.io/eddie-energy/eddie"
   version: "v1.43.0"
   logLevel: "INFO"
+  # Optional Spring Boot 4 response buffer, for example 20MB.
+  httpCodecsMaxInMemorySize: ""
   demoButton: true
   # Credentials: supply values below or reference an existing Kubernetes Secret.
   existingSecret: ""
@@ -82,6 +84,8 @@ postgres:
   username: "CHANGEME"
   password: "CHANGEME"
   persistence:
+    # Optional claim with compatible PostgreSQL data and the expected pgdata layout.
+    existingClaim: ""
     storageClass: null
     size: "1Gi"
     storageLimit: "2Gi"

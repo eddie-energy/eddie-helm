@@ -1,5 +1,5 @@
 {{- $connectors := include "eddie.componentValues" (dict "root" . "component" "regionConnectors") | fromYaml }}
-{{ if eq (toString $connectors.ponton.enabled) "true" }}
+{{ if and (eq (toString $connectors.ponton.enabled) "true") (not $connectors.ponton.persistence.existingClaim) }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
