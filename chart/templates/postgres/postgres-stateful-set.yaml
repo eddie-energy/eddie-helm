@@ -59,6 +59,13 @@ spec:
             - name: postgres-data
               mountPath: /var/lib/postgresql/data/pgdata
               subPath: pgdata
+      {{- if $postgres.persistence.existingClaim }}
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: {{ $postgres.persistence.existingClaim | quote }}
+      {{- end }}
+  {{- if not $postgres.persistence.existingClaim }}
   volumeClaimTemplates:
     - metadata:
         name: postgres-data
@@ -74,5 +81,6 @@ spec:
           limits:
             storage: {{ $postgres.persistence.storageLimit | quote }}
           {{- end }}
+  {{- end }}
 
 {{- end }}

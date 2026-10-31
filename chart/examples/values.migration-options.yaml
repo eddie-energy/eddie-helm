@@ -1,0 +1,39 @@
+# Optional settings to combine with an installation profile.
+# Supply the referenced resources before enabling these examples.
+# See README.md for data migration and application compatibility requirements.
+postgres:
+  persistence:
+    existingClaim: restored-postgres
+regionConnectors:
+  ponton:
+    persistence:
+      existingClaim: restored-ponton
+core:
+  extraVolumes:
+    - name: application-config
+      configMap:
+        name: eddie-application-config
+  extraVolumeMounts:
+    - name: application-config
+      mountPath: /opt/extra-config
+      readOnly: true
+kafka:
+  strimzi:
+    jvmOptions:
+      "-Xms": 384m
+      "-Xmx": 384m
+    entityOperator:
+      topicOperator:
+        resources:
+          requests: {memory: 192Mi, cpu: 50m}
+          limits: {memory: 256Mi, cpu: 500m}
+      userOperator:
+        resources:
+          requests: {memory: 192Mi, cpu: 50m}
+          limits: {memory: 256Mi, cpu: 500m}
+mqtt:
+  mosquitto:
+    maxQueuedBytes: 67108864
+    queueQos0Messages: false
+    autosaveInterval: 1800
+    allowLocalSysRead: false

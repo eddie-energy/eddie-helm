@@ -8,7 +8,7 @@ The source repository is [eddie-energy/eddie-helm](https://github.com/eddie-ener
 
 `chart/Chart.yaml: version` is the package version. Use a patch for compatible fixes, a minor for compatible additions, and a major for incompatible configuration or deployment changes. `appVersion` describes EDDIE and stays aligned with the configured core image.
 
-Update the chart version, root README version marker, packaged version reference, change log, and versioned examples together. Use plain SemVer such as `1.2.0`. Never replace a published package or move its release tag.
+Update the chart version, root README version marker, packaged version reference, change log, and versioned examples together. Use plain SemVer such as `1.3.0`. Never replace a published package or move its release tag.
 
 Confirm application and dependency compatibility, licences, notices, and image availability. HiveMQ requires access to its separate extension image or an accessible compatible image.
 
@@ -25,10 +25,12 @@ helm lint ./chart --strict -f chart/examples/values.internal.yaml
 helm lint ./chart --strict -f chart/examples/values.public.yaml
 helm lint ./chart --strict -f chart/examples/values.internal.yaml --set mqtt.broker=hivemq
 helm lint ./chart --strict -f chart/examples/values.internal.yaml --set strimziOperator.enabled=true
+helm lint ./chart --strict -f chart/examples/values.kafka-external.yaml
+helm lint ./chart --strict -f chart/examples/values.internal.yaml -f chart/examples/values.migration-options.yaml
 helm template eddie ./chart -n eddie -f chart/examples/values.internal.yaml > rendered.local.yaml
 mkdir -p dist
 helm package ./chart --destination dist
-tar -tzf dist/eddie-1.2.0.tgz
+tar -tzf dist/eddie-1.3.0.tgz
 ```
 
 Review the rendered resources and archive contents. Include the dependency, licence, notices, examples, release notes, and connector documentation. Keep private values, rendered Secrets, keys, and registry credentials outside the package.
@@ -39,8 +41,8 @@ Record the reviewed source commit with an annotated or signed tag:
 
 ```sh
 git show HEAD:chart/Chart.yaml
-git tag -a chart-v1.2.0 HEAD -m "EDDIE chart 1.2.0"
-git push origin refs/tags/chart-v1.2.0
+git tag -a chart-v1.3.0 HEAD -m "EDDIE chart 1.3.0"
+git push origin refs/tags/chart-v1.3.0
 ```
 
 Confirm that the tag, package filename, and chart metadata contain the selected version. The tag records the source commit and does not publish the package.
@@ -60,13 +62,13 @@ Use credentials with permission to publish to that namespace. Before pushing, ch
 
 ```sh
 ERROR_FILE="$(mktemp)"
-if helm show chart "$CHART_REF" --version 1.2.0 >/dev/null 2>"$ERROR_FILE"; then
-  printf 'Version 1.2.0 already exists. Select a new chart version.\n' >&2
+if helm show chart "$CHART_REF" --version 1.3.0 >/dev/null 2>"$ERROR_FILE"; then
+  printf 'Version 1.3.0 already exists. Select a new chart version.\n' >&2
   rm "$ERROR_FILE"
   false
 elif grep -Eqi 'manifest unknown|MANIFEST_UNKNOWN' "$ERROR_FILE"; then
   rm "$ERROR_FILE"
-  helm push dist/eddie-1.2.0.tgz "$REGISTRY_NAMESPACE"
+  helm push dist/eddie-1.3.0.tgz "$REGISTRY_NAMESPACE"
 else
   cat "$ERROR_FILE" >&2
   rm "$ERROR_FILE"
@@ -85,8 +87,8 @@ After publishing, use the actual `CHART_REF` with a clean Helm registry configur
 ```sh
 REGISTRY_CONFIG="$(mktemp)"
 printf '{"auths":{}}\n' > "$REGISTRY_CONFIG"
-helm show chart "$CHART_REF" --version 1.2.0 --registry-config "$REGISTRY_CONFIG"
-helm show readme "$CHART_REF" --version 1.2.0 --registry-config "$REGISTRY_CONFIG"
+helm show chart "$CHART_REF" --version 1.3.0 --registry-config "$REGISTRY_CONFIG"
+helm show readme "$CHART_REF" --version 1.3.0 --registry-config "$REGISTRY_CONFIG"
 rm "$REGISTRY_CONFIG"
 ```
 

@@ -71,6 +71,10 @@ spec:
     {{- if $kafka.strimzi.metadataVersion }}
     metadataVersion: {{ $kafka.strimzi.metadataVersion | quote }}
     {{- end }}
+    {{- with $kafka.strimzi.jvmOptions }}
+    jvmOptions:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
     listeners:
       - name: internal
         port: 9094
@@ -97,6 +101,9 @@ spec:
               advertisedHost: {{ $externalHost | quote }}
               advertisedPort: {{ $kafka.externalPort }}
       {{- end }}
+      {{- with $kafka.strimzi.additionalListeners }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
     authorization:
       type: simple
       superUsers:
@@ -114,8 +121,7 @@ spec:
       message.max.bytes: 104857600
       replica.fetch.max.bytes: 104857600
   entityOperator:
-    topicOperator: {}
-    userOperator: {}
+    {{- toYaml $kafka.strimzi.entityOperator | nindent 4 }}
 {{- if and (eq (toString $kafka.externalAccess.enabled) "true") (eq ($kafka.externalAccess.type | default "loadBalancer") "loadBalancer") }}
 ---
 apiVersion: v1

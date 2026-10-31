@@ -1,5 +1,19 @@
 # Change log
 
+## 1.3.0
+
+Add opt in existing PostgreSQL and Ponton claims, extra core volumes, a response
+buffer setting for compatible applications, Strimzi listener and resource
+options, and Fluvius certificate mode for a separately supplied compatible image.
+Existing application images and Kafka ownership remain unchanged.
+
+Render Mosquitto queue budgets as decimal integers. Add configurable QoS 0
+queuing, persistence autosave and optional core access to broker telemetry.
+Defaults retain disabled QoS 0 queuing and no core access to `$SYS/#`.
+
+Document storage handover, application requirements and migration boundaries.
+These options do not transfer existing data or make an upgrade safe by themselves.
+
 ## 1.2.0
 
 Add existing Kafka support through the explicit `kafka.external.enabled: true` setting. Existing values retain bundled Kafka and property overrides. External connections support TLS, SCRAM, PLAIN and sensitive properties from existing Secrets. Document topic names, ACLs, fixed consumer groups, message limits and migration requirements.

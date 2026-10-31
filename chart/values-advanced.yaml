@@ -6,6 +6,8 @@
 
 # Container security and health checks. See README.md#security-and-workload-controls.
 core:
+  extraVolumes: []
+  extraVolumeMounts: []
   podSecurityContext:
     runAsNonRoot: true
     runAsUser: 1000
@@ -63,6 +65,9 @@ mqtt:
     authJitterSeconds: 15
     aclJitterSeconds: 15
   mosquitto:
+    allowLocalSysRead: false
+    queueQos0Messages: false
+    autosaveInterval: 1800
     image:
       repository: "ghcr.io/lhns/mosquitto-go-auth"
       pullPolicy: "IfNotPresent"
@@ -109,6 +114,11 @@ kafka:
   users: []
   strimzi:
     metadataVersion: ""
+    jvmOptions: {}
+    additionalListeners: []
+    entityOperator:
+      topicOperator: {}
+      userOperator: {}
     storage:
       type: "persistent-claim"
     offsetsTopicReplicationFactor: 1
@@ -146,6 +156,7 @@ regionConnectors:
         enabled: false
         caCertificate: ""
     persistence:
+      existingClaim: ""
       storage: "1Gi"
       storageLimit: "2Gi"
   esDatadis:
@@ -209,6 +220,8 @@ regionConnectors:
   beFluvius:
     baseUrl: "CHANGEME"
     oauth:
+      # Empty retains client secret login. Certificate requires a compatible image.
+      authenticationMethod: ""
       tokenUrl: ""
       clientId: "CHANGEME"
       clientSecret: "CHANGEME"
